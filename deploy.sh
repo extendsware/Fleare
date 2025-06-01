@@ -35,12 +35,6 @@ for PLATFORM in "${PLATFORMS[@]}"; do
         exit 1
     fi
 
-    env GOOS=$OS GOARCH=$ARCH go build -o $RELEASE_DIR/$OS-$ARCH/$PROJECT_NAME-cli clients/cli/main.go
-    if [ $? -ne 0 ]; then
-        echo "An error occurred while building for $OS/$ARCH. Aborting."
-        exit 1
-    fi
-
     cp "install-$OS-$ARCH.sh" $RELEASE_DIR/$OS-$ARCH/install_fleare.sh
 
     xattr -cr $RELEASE_DIR/$OS-$ARCH
@@ -48,7 +42,6 @@ for PLATFORM in "${PLATFORMS[@]}"; do
     tar --disable-copyfile --exclude='*.tar.gz' --exclude='__MACOSX' --exclude='.DS_Store' -czf $RELEASE_DIR/$OS-$ARCH/$OUTPUT_NAME.tar.gz -C $RELEASE_DIR/$OS-$ARCH .
 
     rm $RELEASE_DIR/$OS-$ARCH/$OUTPUT_NAME
-    rm $RELEASE_DIR/$OS-$ARCH/$PROJECT_NAME-cli
     rm $RELEASE_DIR/$OS-$ARCH/install_fleare.sh
 done
 

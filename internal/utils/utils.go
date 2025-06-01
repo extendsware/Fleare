@@ -222,3 +222,15 @@ func EnsureUnmarshal(value string, u *any) any {
 func StringToByte(value string) []byte {
 	return []byte(value)
 }
+
+func ByteToString(data []byte) string {
+	return string(data)
+}
+
+func ParseInt(v string) (int, bool) {
+	num, err := strconv.Atoi(v)
+	if err != nil {
+		return 0, false
+	}
+	return num, true
+}

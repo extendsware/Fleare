@@ -1,17 +1,17 @@
 package errors
 
 import (
-	"errors"
 	"fmt"
 )
 
 var (
-	InvalidCommandError   = errors.New("InvalidCommandError")
-	InvalidArgsError      = errors.New("InvalidArgumentError")
-	InvalidValueError     = errors.New("InvalidValueError")
-	InvalidKeyError       = errors.New("InvalidKeyError")
-	InvalidMapKeyError    = errors.New("InvalidMapKeyError")
-	InvalidCharacterError = errors.New("InvalidCharacterError")
+	KeyNotFoundError      = "KeyNotFoundError"
+	InvalidCommandError   = "InvalidCommandError"
+	InvalidArgsError      = "InvalidArgumentError"
+	InvalidValueError     = "InvalidValueError"
+	InvalidKeyError       = "InvalidKeyError"
+	InvalidMapKeyError    = "InvalidMapKeyError"
+	InvalidCharacterError = "InvalidCharacterError"
 )
 
 var (

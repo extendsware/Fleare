@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package comm;
+option go_package = "internal/comm";
+
+message Object {
+  string type = 1;
+  bytes value = 2;
+  int64 timestamp = 3;
+}
+
+message WALEntry {
+  enum Operation {
+    UPDATE = 0;
+    DELETE = 1;
+  }
+  Operation op = 1;
+  string key = 2;
+  Object object = 3;
+  uint32 checksum = 4;
+}

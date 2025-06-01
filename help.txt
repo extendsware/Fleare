@@ -1,0 +1,7 @@
+protoc --go_out=. --go_opt=paths=source_relative internal/comm/comm.proto
+
+
+go run main.go -loglevel=debug   # Logs debug, info, warn, error
+go run main.go -loglevel=info    # Logs info, warn, error
+go run main.go -loglevel=warn    # Logs warn, error
+go run main.go -loglevel=error   # Logs only errors

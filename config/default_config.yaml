@@ -1,0 +1,43 @@
+# Configuration for My In-Memory Database
+
+# Server settings
+server:
+  host: "0.0.0.0" # Listen on all network interfaces
+  port: 4775 # Port number for the database server
+
+# Logging settings
+logging:
+  level: "info" # Logging level: debug, info, warn, error
+  file: "/var/log/mydb/mydb.log" # Log file path
+
+# Memory settings
+memory:
+  max_size_mb: 1024 # Maximum memory usage in MB
+  eviction_policy: "LRU" # Eviction policy: LRU, LFU, FIFO
+
+# Security settings
+security:
+  enable_auth: true # Enable authentication
+  auth_method: "basic" # Authentication method: basic, token, etc.
+  users:
+    - username: "root"
+      password: "root" # In a real-world scenario, use hashed passwords!
+      role: "root"
+
+# Data persistence
+persistence:
+  enable: true # Enable data persistence
+  path: "/var/lib/mydb/data.db" # Path to store data
+  after_write_count: 100
+
+# Backup settings
+backup:
+  enable: true # Enable automated backups
+  interval_minutes: 60 # Backup interval in minutes
+  backup_dir: "/var/backups/mydb"
+
+# Other settings
+misc:
+  max_connections: 100 # Maximum number of client connections
+  timeout_seconds: 30 # Timeout for client requests
+  strict_insert: true

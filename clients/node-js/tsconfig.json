@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES6",
+    "module": "CommonJS",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true, // Generates .d.ts files for type definitions
+    "sourceMap": true    // Generates source maps for debugging
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "tests"]
+}

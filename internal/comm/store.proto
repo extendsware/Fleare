@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package comm;
+option go_package = "internal/comm";
+
+// The main Object, holding a type string and a dynamic value.
+message Object {
+  string type = 1;
+  Value value = 2;
+}
+
+// Represents the dynamic value field using oneof.
+message Value {
+  oneof kind {
+    int64 int_value = 1;
+    double float_value = 2;
+    string string_value = 3;
+    bool bool_value = 4;
+    Array array_value = 5;
+    Map map_value = 6;
+    CustomStruct struct_value = 7;
+  }
+}
+
+// Repeated values (array/slice)
+message Array {
+  repeated Value items = 1;
+}
+
+// Map with string keys and flexible values
+message Map {
+  map<string, Value> entries = 1;
+}
+
+// Represents a custom struct with a fixed shape
+message CustomStruct {
+  string name = 1;
+}
+
+// A wrapper for the map[string]*Object
+message ObjectMap {
+  map<string, Object> objects = 1;
+}

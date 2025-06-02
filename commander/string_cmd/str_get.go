@@ -10,31 +10,33 @@ import (
 	"github.com/parashmaity/fleare/internal/utils"
 )
 
-var strAppend = &common.Command{
-	Name:        "APPEND",
-	Description: "Append the string data items to the end of the existing string value.",
-	Syntax:      "APPEND <key> <value> [<value> ...]",
+var strGet = &common.Command{
+	Name:        "STR.GET",
+	Description: "STR.GET retrieve the string data value from the key. If the key does not exist, it will be return empty value.",
+	Syntax:      "STR.GET <key>",
 	Example: `
-	localhost:9219> APPEND key1 "Hello"
+	localhost:9219> STR.SET key1 "Hello"
 	Ok
 	localhost:9219> GET key1 
 	Ok "Hello"
-	localhost:9219> APPEND key1 " World" " John"
-	Ok 
-	localhost:9219> GET key1 
-	Ok "Hello World John"
+	localhost:9219> STR.GET key2
+	Ok ""
 	`,
-	Execute: strAppendFunc,
+	Execute: strGetFunc,
 }
 
 func init() {
-	common.Register(strAppend.Name, strAppend)
+	common.Register(strGet.Name, strGet)
 }
 
-func strAppendFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
+func strGetFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 
 	if cmd.C.Args == nil {
 		return nil, fmt.Errorf("%s: Key must be provided", errors.InvalidKeyError)
+	}
+
+	if len(cmd.C.Args) != 1 {
+		return nil, fmt.Errorf("%s: invalid number of arguments", errors.InvalidArgsError)
 	}
 
 	key := cmd.C.Args[0]
@@ -46,26 +48,18 @@ func strAppendFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 
 	shard := cmd.SM.GetShardByKey(key)
 
-	var str string = ""
 	obj, _ := shard.M.Get(key)
 	if obj != nil {
-		str = string(obj.Value)
+		if store.String != store.Kind(obj.Kind) {
+			return nil, fmt.Errorf("%s: the existing value for the provided key must be a string", errors.InvalidValueError)
+		}
 	}
-	for _, arg := range cmd.C.Args[1:] {
-		str += arg
-	}
-
-	if err = shard.M.Set(key, []byte(str), store.String); err != nil {
-		return nil, err
-	}
-
-	cmd.SM.Wal().Put(key, &comm.Object{Value: []byte(str), Kind: uint32(store.String)})
 
 	return &common.CmdResponse{
 		ClientID: cmd.ClientID,
 		D: &comm.Response{
 			ClientId: cmd.ClientID,
-			Result:   []byte(""),
+			Result:   []byte(obj.Value),
 		},
 	}, nil
 }

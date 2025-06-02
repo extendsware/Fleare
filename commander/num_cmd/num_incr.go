@@ -67,8 +67,8 @@ func numberIncrFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 	obj, _ := shard.M.Get(key)
 	if obj != nil {
 		current, err := utils.ConvertToNumber(string(obj.Value))
-		if err != nil {
-			return nil, fmt.Errorf("%s: %s", errors.InvalidValueError, "existing value is not a valid number")
+		if err != nil || store.Number != store.Kind(obj.Kind) {
+			return nil, fmt.Errorf("%s: the existing value for the provided key must be a number", errors.InvalidValueError)
 		}
 		v = current + v
 	}

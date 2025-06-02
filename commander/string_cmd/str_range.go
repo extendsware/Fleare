@@ -2,30 +2,30 @@ package string_cmd
 
 import (
 	"fmt"
-	"unicode/utf8"
 
 	"github.com/parashmaity/fleare/commander/common"
 	"github.com/parashmaity/fleare/internal/comm"
 	"github.com/parashmaity/fleare/internal/errors"
+	"github.com/parashmaity/fleare/internal/store"
 	"github.com/parashmaity/fleare/internal/utils"
 )
 
 var strRangeCmd = &common.Command{
-	Name: "RANGE",
+	Name: "STR.RANGE",
 	Description: `Returns a substring of the string value stored at the specified key, based on the provided start and end offsets (both inclusive).
 				  Negative offsets are supported and refer to positions counted from the end of the string. For example, -1 represents the last character, -2 the second-to-last, and so on.`,
 	Example: `
-	Syntax: RANGE key start end
+	Syntax: STR.RANGE key start end
 	Example:
 	localhost:9219> SET myKey "There are many variations of passages"
 	Ok
-	localhost:9219> RANGE myKey 0 5
+	localhost:9219> STR.RANGE myKey 0 5
 	Ok "There"
-	localhost:9219> RANGE myKey 15 10
+	localhost:9219> STR.RANGE myKey 15 10
 	Ok "variations"
-	localhost:9219> RANGE myKey -8 4
+	localhost:9219> STR.RANGE myKey -8 4
 	Ok "pass"
-	localhost:9219> RANGE myKey 15 -1
+	localhost:9219> STR.RANGE myKey 15 -1
 	Ok "variations of passages"
 	`,
 	Execute: strRangeFunc,
@@ -68,8 +68,8 @@ func strRangeFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 		return nil, fmt.Errorf("%s: %s", errors.KeyNotFoundError, "provided key does not exist")
 	}
 
-	if !utf8.Valid(obj.Value) {
-		return nil, fmt.Errorf("%s: %s", errors.InvalidValueError, "stored value is not a string for the provided key")
+	if store.String != store.Kind(obj.Kind) {
+		return nil, fmt.Errorf("%s: the existing value for the provided key must be a string", errors.InvalidValueError)
 	}
 
 	str := getRange(utils.ByteToString(obj.Value), start, end)

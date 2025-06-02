@@ -4,7 +4,7 @@ package comm;
 option go_package = "internal/comm";
 
 message Object {
-  string type = 1;
+  uint32 kind = 1;
   bytes value = 2;
   int64 timestamp = 3;
 }

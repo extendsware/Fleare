@@ -1,15 +1,16 @@
-package serve
+package string_cmd
 
 import (
 	"fmt"
 	"unicode/utf8"
 
+	"github.com/parashmaity/fleare/commander/common"
 	"github.com/parashmaity/fleare/internal/comm"
 	"github.com/parashmaity/fleare/internal/errors"
 	"github.com/parashmaity/fleare/internal/utils"
 )
 
-var strRangeCmd = &Command{
+var strRangeCmd = &common.Command{
 	Name: "RANGE",
 	Description: `Returns a substring of the string value stored at the specified key, based on the provided start and end offsets (both inclusive).
 				  Negative offsets are supported and refer to positions counted from the end of the string. For example, -1 represents the last character, -2 the second-to-last, and so on.`,
@@ -31,10 +32,10 @@ var strRangeCmd = &Command{
 }
 
 func init() {
-	Register(strRangeCmd.Name, strRangeCmd)
+	common.Register(strRangeCmd.Name, strRangeCmd)
 }
 
-func strRangeFunc(cmd *Cmd) (*CmdResponse, error) {
+func strRangeFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 
 	if cmd.C.Args == nil {
 		return nil, fmt.Errorf("%s: Key must be provided", errors.InvalidKeyError)
@@ -73,7 +74,7 @@ func strRangeFunc(cmd *Cmd) (*CmdResponse, error) {
 
 	str := getRange(utils.ByteToString(obj.Value), start, end)
 
-	return &CmdResponse{
+	return &common.CmdResponse{
 		ClientID: cmd.ClientID,
 		D: &comm.Response{
 			ClientId: cmd.ClientID,

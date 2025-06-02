@@ -1,16 +1,17 @@
 package store
 
-type Kind int
+type Kind uint32
 
 const (
-	Invalid Kind = iota
-	Int
-	Float
+	Default Kind = iota
 	String
-	Bool
+	Number
+	Map
+	Set
+	Array
 )
 
 type Object struct {
 	Type  Kind
-	Value interface{}
+	Value []byte
 }

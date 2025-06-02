@@ -1,14 +1,16 @@
-package serve
+package string_cmd
 
 import (
 	"fmt"
 
+	"github.com/parashmaity/fleare/commander/common"
 	"github.com/parashmaity/fleare/internal/comm"
 	"github.com/parashmaity/fleare/internal/errors"
+	"github.com/parashmaity/fleare/internal/store"
 	"github.com/parashmaity/fleare/internal/utils"
 )
 
-var strAppend = &Command{
+var strAppend = &common.Command{
 	Name:        "APPEND",
 	Description: "Append the string data items to the end of the existing string value.",
 	Syntax:      "APPEND <key> <value> [<value> ...]",
@@ -26,10 +28,10 @@ var strAppend = &Command{
 }
 
 func init() {
-	Register(strAppend.Name, strAppend)
+	common.Register(strAppend.Name, strAppend)
 }
 
-func strAppendFunc(cmd *Cmd) (*CmdResponse, error) {
+func strAppendFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 
 	if cmd.C.Args == nil {
 		return nil, fmt.Errorf("%s: Key must be provided", errors.InvalidKeyError)
@@ -53,13 +55,13 @@ func strAppendFunc(cmd *Cmd) (*CmdResponse, error) {
 		str += arg
 	}
 
-	if err = shard.M.Set(key, []byte(str)); err != nil {
+	if err = shard.M.Set(key, []byte(str), store.String); err != nil {
 		return nil, err
 	}
 
-	cmd.SM.Wal().Put(key, &comm.Object{Value: []byte(str)})
+	cmd.SM.Wal().Put(key, &comm.Object{Value: []byte(str), Kind: uint32(store.String)})
 
-	return &CmdResponse{
+	return &common.CmdResponse{
 		ClientID: cmd.ClientID,
 		D: &comm.Response{
 			ClientId: cmd.ClientID,

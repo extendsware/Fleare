@@ -26,8 +26,8 @@ func (m *Memory) Get(key string) (*comm.Object, error) {
 	return obj, nil
 }
 
-func (m *Memory) Set(key string, value []byte) error {
-	obj := &comm.Object{Value: value}
+func (m *Memory) Set(key string, value []byte, kind Kind) error {
+	obj := &comm.Object{Value: value, Kind: uint32(kind)}
 	// fmt.Println("mem", obj, string(value))
 	m.Mem[key] = obj
 	return nil

@@ -12,7 +12,7 @@ type IMemory interface {
 
 	// Set stores a key-value pair in memory.
 	// Returns an error if the operation fails.
-	Set(key string, value []byte) error
+	Set(key string, value []byte, kind Kind) error
 
 	// Delete removes the object associated with the given key from memory.
 	// Returns an error if the key does not exist or deletion fails.

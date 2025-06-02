@@ -15,7 +15,6 @@ import (
 	"github.com/parashmaity/fleare/internal/comm"
 	"github.com/parashmaity/fleare/internal/helper"
 	"github.com/parashmaity/fleare/internal/logger"
-
 	"google.golang.org/protobuf/proto"
 )
 
@@ -238,8 +237,8 @@ func calculateChecksum(obj *comm.Object) uint32 {
 		return 0
 	}
 	h := fnv.New32a()
-	h.Write([]byte(obj.Type))
-	h.Write([]byte(obj.Value))
+	h.Write(fmt.Appendf(nil, "%d", obj.Kind))
+	h.Write(obj.Value)
 	h.Write(fmt.Appendf(nil, "%d", obj.Timestamp))
 	return h.Sum32()
 }

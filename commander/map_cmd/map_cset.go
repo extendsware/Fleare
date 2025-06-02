@@ -1,14 +1,16 @@
-package serve
+package map_cmd
 
 import (
 	"fmt"
 
+	"github.com/parashmaity/fleare/commander/common"
 	"github.com/parashmaity/fleare/internal/comm"
 	errors "github.com/parashmaity/fleare/internal/errors"
+	"github.com/parashmaity/fleare/internal/store"
 	"github.com/parashmaity/fleare/internal/utils"
 )
 
-var mapCSetCmd = &Command{
+var mapCSetCmd = &common.Command{
 	Name:        "MAP.CSET",
 	Description: "MAP.CSET clean all existing map keys and value and add new one based on the provided new map key and value",
 	Example: `
@@ -39,10 +41,10 @@ var mapCSetCmd = &Command{
 }
 
 func init() {
-	Register(mapCSetCmd.Name, mapCSetCmd)
+	common.Register(mapCSetCmd.Name, mapCSetCmd)
 }
 
-func mapCSetKey(cmd *Cmd) (*CmdResponse, error) {
+func mapCSetKey(cmd *common.Cmd) (*common.CmdResponse, error) {
 
 	if cmd.C.Args == nil || len(cmd.C.Args) != 3 {
 		return nil, fmt.Errorf("%s: Key mapKey, and value must be provided", errors.InvalidArgsError)
@@ -71,13 +73,13 @@ func mapCSetKey(cmd *Cmd) (*CmdResponse, error) {
 
 	objBytes := utils.ObjectToByte(M)
 
-	if err = shard.M.Set(key, objBytes); err != nil {
+	if err = shard.M.Set(key, objBytes, store.Map); err != nil {
 		return nil, err
 	}
 
-	cmd.SM.Wal().Put(key, &comm.Object{Value: objBytes})
+	cmd.SM.Wal().Put(key, &comm.Object{Value: objBytes, Kind: uint32(store.Map)})
 
-	return &CmdResponse{
+	return &common.CmdResponse{
 		D: &comm.Response{
 			Result: []byte(""),
 		},

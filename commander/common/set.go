@@ -1,10 +1,11 @@
-package serve
+package common
 
 import (
 	"fmt"
 
 	"github.com/parashmaity/fleare/internal/comm"
 	errors "github.com/parashmaity/fleare/internal/errors"
+	"github.com/parashmaity/fleare/internal/store"
 	"github.com/parashmaity/fleare/internal/utils"
 )
 
@@ -39,11 +40,11 @@ func setKey(cmd *Cmd) (*CmdResponse, error) {
 
 	shard := cmd.SM.GetShardByKey(key)
 
-	if err = shard.M.Set(key, value); err != nil {
+	if err = shard.M.Set(key, value, store.Default); err != nil {
 		return nil, err
 	}
 
-	cmd.SM.Wal().Put(key, &comm.Object{Value: value})
+	cmd.SM.Wal().Put(key, &comm.Object{Value: value, Kind: uint32(store.Default)})
 
 	return &CmdResponse{
 		D: &comm.Response{

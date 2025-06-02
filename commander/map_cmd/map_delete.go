@@ -1,15 +1,16 @@
-package serve
+package map_cmd
 
 import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/parashmaity/fleare/commander/common"
 	"github.com/parashmaity/fleare/internal/comm"
 	errors "github.com/parashmaity/fleare/internal/errors"
 	"github.com/parashmaity/fleare/internal/utils"
 )
 
-var mapDeleteCmd = &Command{
+var mapDeleteCmd = &common.Command{
 	Name:        "MAP.DELETE",
 	Description: "MAP.DELETE delete only existing map key",
 	Example: `
@@ -20,10 +21,10 @@ var mapDeleteCmd = &Command{
 }
 
 func init() {
-	Register(mapDeleteCmd.Name, mapDeleteCmd)
+	common.Register(mapDeleteCmd.Name, mapDeleteCmd)
 }
 
-func mapDeleteKey(cmd *Cmd) (*CmdResponse, error) {
+func mapDeleteKey(cmd *common.Cmd) (*common.CmdResponse, error) {
 
 	if cmd.C.Args == nil || len(cmd.C.Args) > 2 {
 		return nil, fmt.Errorf("%s: More then 2 args not supported, Supported args Key or key and mapKey", errors.InvalidArgsError)
@@ -68,7 +69,7 @@ func mapDeleteKey(cmd *Cmd) (*CmdResponse, error) {
 		}
 	}
 
-	return &CmdResponse{
+	return &common.CmdResponse{
 		D: &comm.Response{
 			Result: []byte(""),
 		},

@@ -1,15 +1,17 @@
-package serve
+package map_cmd
 
 import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/parashmaity/fleare/commander/common"
 	"github.com/parashmaity/fleare/internal/comm"
 	errors "github.com/parashmaity/fleare/internal/errors"
+	"github.com/parashmaity/fleare/internal/store"
 	"github.com/parashmaity/fleare/internal/utils"
 )
 
-var mapSetCmd = &Command{
+var mapSetCmd = &common.Command{
 	Name:        "MAP.SET",
 	Description: "MAP.SET key mapOnKey value",
 	Example: `
@@ -24,10 +26,10 @@ var mapSetCmd = &Command{
 }
 
 func init() {
-	Register(mapSetCmd.Name, mapSetCmd)
+	common.Register(mapSetCmd.Name, mapSetCmd)
 }
 
-func mapSetKey(cmd *Cmd) (*CmdResponse, error) {
+func mapSetKey(cmd *common.Cmd) (*common.CmdResponse, error) {
 
 	if cmd.C.Args == nil || len(cmd.C.Args) != 3 {
 		return nil, fmt.Errorf("%s: Key mapKey, and value must be provided", errors.InvalidArgsError)
@@ -63,13 +65,13 @@ func mapSetKey(cmd *Cmd) (*CmdResponse, error) {
 
 	objBytes := utils.ObjectToByte(M)
 
-	if err = shard.M.Set(key, objBytes); err != nil {
+	if err = shard.M.Set(key, objBytes, store.Map); err != nil {
 		return nil, err
 	}
 
-	cmd.SM.Wal().Put(key, &comm.Object{Value: objBytes})
+	cmd.SM.Wal().Put(key, &comm.Object{Value: objBytes, Kind: uint32(store.Map)})
 
-	return &CmdResponse{
+	return &common.CmdResponse{
 		D: &comm.Response{
 			Result: []byte(""),
 		},

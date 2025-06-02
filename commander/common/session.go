@@ -1,4 +1,4 @@
-package serve
+package common
 
 import (
 	"github.com/parashmaity/fleare/internal/auth"

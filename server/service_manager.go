@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/parashmaity/fleare/commander/serve"
+	"github.com/parashmaity/fleare/commander/common"
 	"github.com/parashmaity/fleare/config"
 	"github.com/parashmaity/fleare/internal/auth"
 	"github.com/parashmaity/fleare/internal/comm"
@@ -154,7 +154,7 @@ func (m *EventManager) OnTraffic(conn eventloop.Conn, clientID string, data []by
 		return
 	}
 
-	cmd := &serve.Cmd{
+	cmd := &common.Cmd{
 		SM:       m.ShardManager,
 		ClientID: clientID,
 		C:        c,

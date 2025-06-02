@@ -1,15 +1,16 @@
-package serve
+package map_cmd
 
 import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/parashmaity/fleare/commander/common"
 	"github.com/parashmaity/fleare/internal/comm"
 	errors "github.com/parashmaity/fleare/internal/errors"
 	"github.com/parashmaity/fleare/internal/utils"
 )
 
-var mapGetCmd = &Command{
+var mapGetCmd = &common.Command{
 	Name:        "MAP.GET",
 	Description: "MAP.GET key mapKey",
 	Example: `
@@ -40,10 +41,10 @@ var mapGetCmd = &Command{
 }
 
 func init() {
-	Register(mapGetCmd.Name, mapGetCmd)
+	common.Register(mapGetCmd.Name, mapGetCmd)
 }
 
-func mapGetKey(cmd *Cmd) (*CmdResponse, error) {
+func mapGetKey(cmd *common.Cmd) (*common.CmdResponse, error) {
 
 	if cmd.C.Args == nil || len(cmd.C.Args) > 2 {
 		return nil, fmt.Errorf("%s: More then 2 args not supported, Supported args Key or key and mapKey", errors.InvalidArgsError)
@@ -60,7 +61,7 @@ func mapGetKey(cmd *Cmd) (*CmdResponse, error) {
 	obj, _ := shard.M.Get(key)
 
 	if obj == nil {
-		return &CmdResponse{
+		return &common.CmdResponse{
 			D: &comm.Response{
 				Result: []byte(""),
 			},
@@ -87,7 +88,7 @@ func mapGetKey(cmd *Cmd) (*CmdResponse, error) {
 		}
 	}
 
-	return &CmdResponse{
+	return &common.CmdResponse{
 		D: &comm.Response{
 			Result: V,
 		},

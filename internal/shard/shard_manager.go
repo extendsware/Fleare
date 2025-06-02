@@ -9,6 +9,7 @@ import (
 	"github.com/parashmaity/fleare/internal/comm"
 	"github.com/parashmaity/fleare/internal/helper"
 	"github.com/parashmaity/fleare/internal/logger"
+	"github.com/parashmaity/fleare/internal/store"
 	"github.com/parashmaity/fleare/internal/wal"
 )
 
@@ -101,7 +102,7 @@ func (sm *ShardManager) RecoverMemory(path string) {
 		if isDeleted {
 			shard.M.Delete(key)
 		} else {
-			shard.M.Set(key, obj.Value)
+			shard.M.Set(key, obj.Value, store.Kind(obj.Kind))
 		}
 	})
 }

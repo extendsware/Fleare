@@ -1,4 +1,4 @@
-package serve
+package common
 
 import (
 	"fmt"
@@ -36,6 +36,7 @@ type Command struct {
 
 // function for add command to ExecCommands
 func Register(name string, cmd *Command) {
+	// fmt.Println(name)
 	ExecCommands[name] = cmd
 }
 

@@ -1,14 +1,16 @@
-package serve
+package num_cmd
 
 import (
 	"fmt"
 
+	"github.com/parashmaity/fleare/commander/common"
 	"github.com/parashmaity/fleare/internal/comm"
 	"github.com/parashmaity/fleare/internal/errors"
+	"github.com/parashmaity/fleare/internal/store"
 	"github.com/parashmaity/fleare/internal/utils"
 )
 
-var numberCmd = &Command{
+var numberCmd = &common.Command{
 	Name:        "NUM.SET",
 	Description: "Set a number value in the database, Value can be any number type (int, float, etc.)",
 	Syntax:      "NUM.SET <key> <value>",
@@ -26,16 +28,16 @@ var numberCmd = &Command{
 }
 
 func init() {
-	Register(numberCmd.Name, numberCmd)
+	common.Register(numberCmd.Name, numberCmd)
 }
 
-func numberSetFunc(cmd *Cmd) (*CmdResponse, error) {
+func numberSetFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 
 	if cmd.C.Args == nil {
 		return nil, fmt.Errorf("%s: Key must be provided", errors.InvalidKeyError)
 	}
 
-	if len(cmd.C.Args) > 2 {
+	if len(cmd.C.Args) != 2 {
 		return nil, fmt.Errorf("%s: invalid number of arguments", errors.InvalidArgsError)
 	}
 
@@ -54,13 +56,13 @@ func numberSetFunc(cmd *Cmd) (*CmdResponse, error) {
 	}
 	byteValue := utils.ObjectToByte(v)
 	shard := cmd.SM.GetShardByKey(key)
-	if err = shard.M.Set(key, byteValue); err != nil {
+	if err = shard.M.Set(key, byteValue, store.Number); err != nil {
 		return nil, err
 	}
 
-	cmd.SM.Wal().Put(key, &comm.Object{Value: byteValue})
+	cmd.SM.Wal().Put(key, &comm.Object{Value: byteValue, Kind: uint32(store.Number)})
 
-	return &CmdResponse{
+	return &common.CmdResponse{
 		ClientID: cmd.ClientID,
 		D: &comm.Response{
 			ClientId: cmd.ClientID,

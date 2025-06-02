@@ -69,7 +69,7 @@ func (WALEntry_Operation) EnumDescriptor() ([]byte, []int) {
 
 type Object struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	Kind          uint32                 `protobuf:"varint,1,opt,name=kind,proto3" json:"kind,omitempty"`
 	Value         []byte                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 	Timestamp     int64                  `protobuf:"varint,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -106,11 +106,11 @@ func (*Object) Descriptor() ([]byte, []int) {
 	return file_internal_comm_store_obj_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Object) GetType() string {
+func (x *Object) GetKind() uint32 {
 	if x != nil {
-		return x.Type
+		return x.Kind
 	}
-	return ""
+	return 0
 }
 
 func (x *Object) GetValue() []byte {
@@ -201,7 +201,7 @@ const file_internal_comm_store_obj_proto_rawDesc = "" +
 	"\n" +
 	"\x1dinternal/comm/store_obj.proto\x12\x04comm\"P\n" +
 	"\x06Object\x12\x12\n" +
-	"\x04type\x18\x01 \x01(\tR\x04type\x12\x14\n" +
+	"\x04kind\x18\x01 \x01(\rR\x04kind\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\fR\x05value\x12\x1c\n" +
 	"\ttimestamp\x18\x03 \x01(\x03R\ttimestamp\"\xad\x01\n" +
 	"\bWALEntry\x12(\n" +

@@ -67,9 +67,8 @@ func mapCSetKey(cmd *common.Cmd) (*common.CmdResponse, error) {
 	shard.M.Delete(key)
 
 	M := make(map[string]any)
-	var u any
 
-	M[mk] = utils.EnsureUnmarshal(value, &u)
+	M[mk] = utils.EnsureUnmarshal(value)
 
 	objBytes := utils.ObjectToByte(M)
 

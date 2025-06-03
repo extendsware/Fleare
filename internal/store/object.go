@@ -8,7 +8,7 @@ const (
 	Number
 	Map
 	Set
-	Array
+	List
 )
 
 type Object struct {

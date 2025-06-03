@@ -184,20 +184,11 @@ func FilterUpdate(items []interface{}, key string, value string, data interface{
 }
 func ParseJson(jsonString string) (ClientData, error) {
 	var clientObject ClientData
-
 	err := json.Unmarshal([]byte(jsonString), &clientObject)
 	if err != nil {
 		return clientObject, errors.New("Invalid request data format.")
 	}
 	return clientObject, nil
-}
-
-func formatJson(value interface{}) ([]byte, error) {
-	d, err := json.MarshalIndent(value, "", "    ")
-	if err != nil {
-		return nil, errors.New(err.Error())
-	}
-	return d, nil
 }
 
 func ObjectToByte(value any) []byte {
@@ -211,12 +202,12 @@ func ObjectToByte(value any) []byte {
 	return d
 }
 
-func EnsureUnmarshal(value string, u *any) any {
+func EnsureUnmarshal(value string) any {
+	var u any
 	if err := json.Unmarshal([]byte(value), &u); err != nil {
 		return value
-	} else {
-		return u
 	}
+	return u
 }
 
 func StringToByte(value string) []byte {

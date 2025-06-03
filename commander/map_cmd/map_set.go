@@ -55,13 +55,12 @@ func mapSetKey(cmd *common.Cmd) (*common.CmdResponse, error) {
 	}
 
 	M := make(map[string]any)
-	var u any
 	if obj != nil {
 		if err := json.Unmarshal(obj.Value, &M); err != nil {
 			return nil, fmt.Errorf("%s: %s", errors.InvalidCharacterError, err.Error())
 		}
 	}
-	M[mk] = utils.EnsureUnmarshal(value, &u)
+	M[mk] = utils.EnsureUnmarshal(value)
 
 	objBytes := utils.ObjectToByte(M)
 

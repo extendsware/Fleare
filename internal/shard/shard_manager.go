@@ -102,6 +102,9 @@ func (sm *ShardManager) RecoverMemory(path string) {
 		if isDeleted {
 			shard.M.Delete(key)
 		} else {
+			if obj == nil {
+				return
+			}
 			shard.M.Set(key, obj.Value, store.Kind(obj.Kind))
 		}
 	})

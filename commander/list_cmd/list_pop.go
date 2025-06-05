@@ -11,36 +11,35 @@ import (
 	"github.com/parashmaity/fleare/internal/utils"
 )
 
-var listPushCmd = &common.Command{
-	Name: "LIST.PUSH",
-	Description: `Insert all the given values at the beginning of the list stored at the specified key.
-				 If the key does not exist, an empty list is created before performing the insertion. 
-				 Returns an error if the key exists but does not hold a list.`,
+var listPopCmd = &common.Command{
+	Name:        "LIST.POP",
+	Description: `the command pops a single element from the beginning of the list of the list stored at the specified key`,
 
-	Syntax: "LIST.PUSH <key> <element> [<element>...]",
+	Syntax: "LIST.POP <key>",
 	Example: `
 	localhost:9219> LIST.PUSH myKey "This is my first element"
 	Ok
 	localhost:9219> LIST.PUSH myKey '{"name":"John", "address": "kolkata"}' 10023.22
 	Ok
+	localhost:9219> LIST.POP myKey
+	Ok 
 	localhost:9219> LIST.GET myKey
 	Ok [
-		"This is my first element",
+		"This is my first element"
 		{
-		   "name":"John",
-		   "address": "kolkata"
-		},
-		10023.22
+			"name":"John",
+			"address": "kolkata"
+		}
 	]
 	`,
-	Execute: listPushFunc,
+	Execute: listPopFunc,
 }
 
 func init() {
-	common.Register(listPushCmd.Name, listPushCmd)
+	common.Register(listPopCmd.Name, listPopCmd)
 }
 
-func listPushFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
+func listPopFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 
 	if cmd.C.Args == nil {
 		return nil, fmt.Errorf("%s: Key must be provided", errors.InvalidKeyError)
@@ -61,21 +60,36 @@ func listPushFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 		if err := json.Unmarshal(obj.Value, &arr); err != nil {
 			return nil, fmt.Errorf("%s: %s", errors.InvalidCharacterError, err.Error())
 		}
+		if store.List != store.Kind(obj.Kind) {
+			return nil, fmt.Errorf("%s: the existing value for the provided key must be a list", errors.InvalidValueError)
+		}
+	} else {
+		return &common.CmdResponse{
+			D: &comm.Response{
+				Result: []byte(""),
+			},
+		}, nil
 	}
-	for _, arg := range cmd.C.Args[1:] {
-		data := utils.EnsureUnmarshal(arg)
-		arr = append(arr, data)
+	length := len(arr)
+	if length == 1 {
+		shard.M.Delete(key)
+		cmd.SM.Wal().Delete(key)
+		return &common.CmdResponse{
+			D: &comm.Response{
+				Result: []byte(""),
+			},
+		}, nil
 	}
-
-	objBytes := utils.ObjectToByte(arr)
+	objBytes := utils.ObjectToByte(arr[:length-1])
 	if err = shard.M.Set(key, objBytes, store.List); err != nil {
 		return nil, err
 	}
+	obj.Value = objBytes
 	cmd.SM.Wal().Put(key, &comm.Object{Value: objBytes, Kind: uint32(store.List)})
 
 	return &common.CmdResponse{
 		D: &comm.Response{
-			Result: objBytes,
+			Result: []byte(""),
 		},
 	}, nil
 }

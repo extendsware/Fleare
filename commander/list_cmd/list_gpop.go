@@ -11,36 +11,35 @@ import (
 	"github.com/parashmaity/fleare/internal/utils"
 )
 
-var listPushCmd = &common.Command{
-	Name: "LIST.PUSH",
-	Description: `Insert all the given values at the beginning of the list stored at the specified key.
-				 If the key does not exist, an empty list is created before performing the insertion. 
-				 Returns an error if the key exists but does not hold a list.`,
+var listGPopCmd = &common.Command{
+	Name:        "LIST.GPOP",
+	Description: `(Get and Pop)Removes and returns the first element of the list stored at the specified key`,
 
-	Syntax: "LIST.PUSH <key> <element> [<element>...]",
+	Syntax: "LIST.GPOP <key>",
 	Example: `
 	localhost:9219> LIST.PUSH myKey "This is my first element"
 	Ok
 	localhost:9219> LIST.PUSH myKey '{"name":"John", "address": "kolkata"}' 10023.22
 	Ok
+	localhost:9219> LIST.GPOP myKey
+	Ok 10023.22
 	localhost:9219> LIST.GET myKey
 	Ok [
-		"This is my first element",
+		"This is my first element"
 		{
-		   "name":"John",
-		   "address": "kolkata"
-		},
-		10023.22
+			"name":"John",
+			"address": "kolkata"
+		}
 	]
 	`,
-	Execute: listPushFunc,
+	Execute: listGPopFunc,
 }
 
 func init() {
-	common.Register(listPushCmd.Name, listPushCmd)
+	common.Register(listGPopCmd.Name, listGPopCmd)
 }
 
-func listPushFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
+func listGPopFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 
 	if cmd.C.Args == nil {
 		return nil, fmt.Errorf("%s: Key must be provided", errors.InvalidKeyError)
@@ -61,21 +60,24 @@ func listPushFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 		if err := json.Unmarshal(obj.Value, &arr); err != nil {
 			return nil, fmt.Errorf("%s: %s", errors.InvalidCharacterError, err.Error())
 		}
+		if store.List != store.Kind(obj.Kind) {
+			return nil, fmt.Errorf("%s: the existing value for the provided key must be a list", errors.InvalidValueError)
+		}
 	}
-	for _, arg := range cmd.C.Args[1:] {
-		data := utils.EnsureUnmarshal(arg)
-		arr = append(arr, data)
-	}
+	last := arr[len(arr)-1]
 
-	objBytes := utils.ObjectToByte(arr)
+	objBytes := utils.ObjectToByte(arr[:len(arr)-1])
 	if err = shard.M.Set(key, objBytes, store.List); err != nil {
 		return nil, err
 	}
-	cmd.SM.Wal().Put(key, &comm.Object{Value: objBytes, Kind: uint32(store.List)})
+	obj.Value = objBytes
+	cmd.SM.Wal().Put(key, obj)
+
+	item := utils.ObjectToByte(last)
 
 	return &common.CmdResponse{
 		D: &comm.Response{
-			Result: objBytes,
+			Result: item,
 		},
 	}, nil
 }

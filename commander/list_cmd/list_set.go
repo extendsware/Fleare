@@ -1,8 +1,8 @@
 package common
 
 import (
-	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/parashmaity/fleare/commander/common"
 	"github.com/parashmaity/fleare/internal/comm"
@@ -13,19 +13,21 @@ import (
 
 var listSetCmd = &common.Command{
 	Name:        "LIST.SET",
-	Description: "Sets the list element at index to element. An error is returned for out of range indexes.",
-	Syntax:      "LIST.SET <key> <index> <value>",
+	Description: "Clear all existing elements and Set the new element to the list. Returned indexes number.",
+	Syntax:      "LIST.SET <key> [<value>]",
 	Example: `
-	localhost:9219> LIST.SET myKey 0 "This is my first element"
-	Ok
+	localhost:9219> LIST.SET myKey "This is my first element"
+	Ok 0
 	localhost:9219> LIST.GET myKey
 	Ok [
 		"This is my first element"
 	]
-	localhost:9219> LIST.SET myKey 1 "This is my second element"
-	Ok
-	localhost:9219> LIST.GET myKey 1
-	Ok "This is my second element"
+	localhost:9219> LIST.SET myKey "This is my second element"
+	Ok 0
+	localhost:9219> LIST.GET myKey
+	Ok [
+		"This is my first element"
+	]
 	`,
 	Execute: listSetFunc,
 }
@@ -40,16 +42,11 @@ func listSetFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 		return nil, fmt.Errorf("%s: Key must be provided", errors.InvalidKeyError)
 	}
 
-	if len(cmd.C.Args) != 3 {
-		return nil, fmt.Errorf("%s: invalid number of arguments", errors.InvalidArgsError)
+	if len(cmd.C.Args) < 2 {
+		return nil, fmt.Errorf("%s: invalid number of arguments,Syntax: LIST.SET <key> [<value>]", errors.InvalidArgsError)
 	}
 
 	key := cmd.C.Args[0]
-	index, ok := utils.ParseInt(cmd.C.Args[1])
-	if !ok || index < 0 {
-		return nil, fmt.Errorf("%s: Invalid index value. The index must be a number greater than or equal to 0", errors.InvalidArgsError)
-	}
-	element := cmd.C.Args[2]
 
 	valid, err := utils.IsValidKey(key)
 	if !valid {
@@ -57,29 +54,15 @@ func listSetFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 	}
 
 	shard := cmd.SM.GetShardByKey(key)
-
-	obj, _ := shard.M.Get(key)
-	data := utils.EnsureUnmarshal(element)
 	var arr []any
-	if obj == nil {
-		if index > 0 {
-			return nil, fmt.Errorf("%s: index out of range", errors.InvalidIndexError)
-		}
+	for _, arg := range cmd.C.Args[1:] {
+		data := utils.EnsureUnmarshal(arg)
 		arr = append(arr, data)
-	} else {
-
-		if err := json.Unmarshal(obj.Value, &arr); err != nil {
-			return nil, fmt.Errorf("%s: %s", errors.InvalidCharacterError, err.Error())
-		}
-		if index >= len(arr) {
-			return nil, fmt.Errorf("%s: index out of range", errors.InvalidIndexError)
-		}
-		arr[index] = data
 	}
 
 	objBytes := utils.ObjectToByte(arr)
 
-	obj = &comm.Object{Value: objBytes, Kind: uint32(store.List)}
+	obj := &comm.Object{Value: objBytes, Kind: uint32(store.List)}
 	if err = shard.M.Set(key, objBytes, store.List); err != nil {
 		return nil, err
 	}
@@ -87,7 +70,7 @@ func listSetFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 
 	return &common.CmdResponse{
 		D: &comm.Response{
-			Result: []byte(""),
+			Result: []byte(strconv.Itoa(len(arr))),
 		},
 	}, nil
 }

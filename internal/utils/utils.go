@@ -77,8 +77,8 @@ func ParseQuery(queryString string) (Query, error) {
 		return query, errors.New("invalid query format")
 	}
 
-	// Split on '>' to extract array filter and field:value pair
-	parts := strings.SplitN(queryString, ">", 2)
+	// Split on '$' to extract array filter and field:value pair
+	parts := strings.SplitN(queryString, "$", 2)
 	query.ArrayFilter = parts[0]
 
 	// If a field:value pair exists, parse it
@@ -91,6 +91,25 @@ func ParseQuery(queryString string) (Query, error) {
 	}
 
 	return query, nil
+}
+
+// parsePath supports $field=val, $field!val, $field~val, =val, !val, ~val
+func ParsePath(path string) (field, op, value string) {
+	if strings.HasPrefix(path, "$") {
+		path = path[1:]
+		for _, o := range []string{">=", "<=", ">", "<", ":", "!", "~"} {
+			if idx := strings.Index(path, o); idx != -1 {
+				return path[:idx], o, path[idx+len(o):]
+			}
+		}
+	} else {
+		for _, o := range []string{">=", "<=", ">", "<", ":", "!", "~"} {
+			if strings.HasPrefix(path, o) {
+				return "", o, strings.TrimPrefix(path, o)
+			}
+		}
+	}
+	return "", "", ""
 }
 
 // Utility functions can be added here

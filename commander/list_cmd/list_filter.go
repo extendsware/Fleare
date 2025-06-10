@@ -13,25 +13,68 @@ import (
 	"github.com/parashmaity/fleare/internal/utils"
 )
 
+// TODO
+// Array filtering inside maps (e.g., $tags:contains:urgent)
+// Regex match on fields (already partially done with ~=re)
+
 var listFilterCmd = &common.Command{
 	Name:        "LIST.FILTER",
 	Description: "filter the list of element(s) by using path. An error is returned for out of range indexes.",
 	Syntax:      "LIST.FILTER <key> <path>",
 	Example: `
-	localhost:9219> LIST.PUSH myKey "One" "Two" "Three" "Four" 
-	Ok
+	127.0.0.1:9219> LIST.SET myArray "John" "Emily" "Michael" "Sarah" "David" "Jessica" "Robert" "Lisa" "James" "Jennifer" "John" "Emily" "Michael" "Sarah" "David" "Jessica" "Robert" "Lisa" "James" "Jennifer"
+	Ok 20
+
+	127.0.0.1:9219> LIST.FILTER myArray ':John'
+	Ok ["John","John"]
+
+	127.0.0.1:9219> LIST.FILTER myArray ':John'
+	Ok ["Emily","Michael","Sarah","David","Jessica","Robert","Lisa","James","Jennifer","Emily","Michael","Sarah","David","Jessica","Robert","Lisa","James","Jennifer"]
 	
-	localhost:9219> LIST.PUSH myKey '{"name":"John", "address": "kolkata"}'
-	Ok
+	127.0.0.1:9219> LIST.FILTER myArray '~jessica'
+	Ok ["Jessica","Jessica"]
 
-	localhost:9219> LIST.FILTER myKey $Two
-	Ok [Two]
+	127.0.0.1:9219> LIST.SET myNum 10 20 30 40 50 60 70 30 20 40 20 70
+	Ok 12
 
-	localhost:9219> LIST.FILTER myKey $address:kolkata
-	Ok [{
-		"name":"John", 
-		"address": "kolkata"
-	}]
+	127.0.0.1:9219> LIST.FILTER myNum ':20'
+	Ok [20,20,20]
+
+	127.0.0.1:9219> LIST.FILTER myNum '!20'
+	Ok [10,30,40,50,60,70,30,40,70]
+
+	127.0.0.1:9219> LIST.FILTER myNum '>50'
+	Ok [60,70,70]
+
+	127.0.0.1:9219> LIST.FILTER myNum '<=30'
+	Ok [10,20,30,30,20,20]
+	
+	127.0.0.1:9219> LIST.PUSH myObj '{"name":"John", "age":30, "city":"New York"}'
+	Ok 1
+
+	127.0.0.1:9219> LIST.PUSH myObj '{"name":"Robert", "age":40, "city":"New York", "preferences": {"theme": "dark"}}'
+	Ok 2
+
+	127.0.0.1:9219> LIST.PUSH myObj '{"name":"David", "age":28, "city":"Kolkata", "preferences": {"theme": "dark"}}'
+	Ok 3
+
+	127.0.0.1:9219> LIST.PUSH myObj '{"name":"Michael", "age":25, "city":"Kolkata", "preferences": {"theme": "white"}}'
+	Ok 4
+
+	127.0.0.1:9219> LIST.FILTER myObj '$name:John'
+	Ok [{"age":30,"city":"New York","name":"John"}]
+
+	127.0.0.1:9219> LIST.FILTER myObj '$city:New York'
+	Ok [{"age":30,"city":"New York","name":"John"},{"age":40,"city":"New York","name":"Robert","preferences":{"theme":"dark"}}]
+
+	127.0.0.1:9219> LIST.FILTER myObj '$age>=28'
+	Ok [{"age":30,"city":"New York","name":"John"},{"age":40,"city":"New York","name":"Robert","preferences":{"theme":"dark"}},{"age":28,"city":"Kolkata","name":"David","preferences":{"theme":"dark"}}]
+
+	127.0.0.1:9219> LIST.FILTER myObj '$preferences.theme:white'
+	Ok [{"age":25,"city":"Kolkata","name":"Michael","preferences":{"theme":"white"}}]
+
+	127.0.0.1:9219> LIST.FILTER myObj '$preferences.theme!white'
+	Ok [{"age":40,"city":"New York","name":"Robert","preferences":{"theme":"dark"}},{"age":28,"city":"Kolkata","name":"David","preferences":{"theme":"dark"}}]
 	`,
 	Execute: listFilterFunc,
 }
@@ -87,10 +130,8 @@ func listFilterFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 	return sentResponse(objBytes, nil)
 }
 
-// Filter filters data based on simplified path expressions
 func Filter(data []interface{}, path string) []interface{} {
 	field, op, value := utils.ParsePath(path)
-	fmt.Println(field, op, value)
 	var result []interface{}
 
 	for _, item := range data {
@@ -99,7 +140,10 @@ func Filter(data []interface{}, path string) []interface{} {
 			if field == "" {
 				continue
 			}
-			val := fmt.Sprintf("%v", v[field])
+			val, ok := getNestedValue(v, field)
+			if !ok {
+				continue
+			}
 			if match(val, op, value) {
 				result = append(result, item)
 			}
@@ -116,36 +160,73 @@ func Filter(data []interface{}, path string) []interface{} {
 	return result
 }
 
-// match compares two values using an operator
+// getNestedValue extracts value from nested maps using dot notation (e.g., "preferences.theme")
+func getNestedValue(m map[string]interface{}, path string) (string, bool) {
+	parts := strings.Split(path, ".")
+	var val any = m
+	for _, part := range parts {
+		if mm, ok := val.(map[string]interface{}); ok {
+			val = mm[part]
+		} else {
+			return "", false
+		}
+	}
+	return fmt.Sprintf("%v", val), true
+}
+
 func match(left, op, right string) bool {
 	switch op {
 	case ":":
-		return left == right
+		return valueEqual(left, right)
 	case "!":
-		return left != right
+		return !valueEqual(left, right)
 	case "~":
 		return strings.EqualFold(left, right)
-	case ">":
-		return compareNum(left, right, func(l, r int) bool { return l > r })
-	case "<":
-		return compareNum(left, right, func(l, r int) bool { return l < r })
-	case ">=":
-		return compareNum(left, right, func(l, r int) bool { return l >= r })
-	case "<=":
-		return compareNum(left, right, func(l, r int) bool { return l <= r })
+	case ">", "<", ">=", "<=":
+		return compareFloat(left, right, op)
 	default:
 		return false
 	}
 }
 
-// compareNum compares two integers with a custom function
-func compareNum(lstr, rstr string, fn func(int, int) bool) bool {
-	l, err1 := strconv.Atoi(lstr)
-	r, err2 := strconv.Atoi(rstr)
+func valueEqual(a, b string) bool {
+	// Try boolean
+	if ab, err1 := strconv.ParseBool(a); err1 == nil {
+		if bb, err2 := strconv.ParseBool(b); err2 == nil {
+			return ab == bb
+		}
+	}
+
+	// Try float
+	if af, err1 := strconv.ParseFloat(a, 64); err1 == nil {
+		if bf, err2 := strconv.ParseFloat(b, 64); err2 == nil {
+			return af == bf
+		}
+	}
+
+	// Default string compare
+	return a == b
+}
+
+func compareFloat(aStr, bStr, op string) bool {
+	a, err1 := strconv.ParseFloat(aStr, 64)
+	b, err2 := strconv.ParseFloat(bStr, 64)
 	if err1 != nil || err2 != nil {
 		return false
 	}
-	return fn(l, r)
+
+	switch op {
+	case ">":
+		return a > b
+	case "<":
+		return a < b
+	case ">=":
+		return a >= b
+	case "<=":
+		return a <= b
+	default:
+		return false
+	}
 }
 
 func sentResponse(data []byte, err error) (*common.CmdResponse, error) {

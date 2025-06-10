@@ -3,6 +3,7 @@ package common
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/parashmaity/fleare/commander/common"
 	"github.com/parashmaity/fleare/internal/comm"
@@ -75,7 +76,7 @@ func listPushFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 
 	return &common.CmdResponse{
 		D: &comm.Response{
-			Result: objBytes,
+			Result: []byte(strconv.Itoa(len(arr))),
 		},
 	}, nil
 }

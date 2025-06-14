@@ -3,12 +3,22 @@
 # Variables
 PROJECT_NAME="fleare"
 RELEASE_DIR="releases"
-PLATFORMS=("linux/amd64" "darwin/arm64")
+PLATFORMS=("linux/amd64" "linux/arm64" "darwin/arm64" "darwin/amd64")
 
 set -e
 
 VERSION=$(cat VERSION)
-IFS='.' read -r VERSION_MAJOR VERSION_MINOR VERSION_PATCH <<< "$VERSION"
+IFS='.' read -r VERSION_MAJOR VERSION_MINOR VERSION_PATCH BUILD_DATE<<< "$VERSION"
+
+tee "commander/version.go" > /dev/null <<EOL
+package commander
+
+var (
+	ProjectName = "$PROJECT_NAME"
+	Version     = "v$VERSION_MAJOR.$VERSION_MINOR.$VERSION_PATCH"
+	BuildDate   = "$BUILD_DATE"
+)
+EOL
 
 # Create release directory
 mkdir -p $RELEASE_DIR
@@ -28,25 +38,27 @@ for PLATFORM in "${PLATFORMS[@]}"; do
         -X 'main.VersionMinor=$VERSION_MINOR' \
         -X 'main.VersionPatch=$VERSION_PATCH' \
         -X 'main.Platform=$OS/$ARCH'" \
-        -o $RELEASE_DIR/$OS-$ARCH/$OUTPUT_NAME
+        -o $RELEASE_DIR/$OS-$ARCH/$PROJECT_NAME
 
     if [ $? -ne 0 ]; then
         echo "An error occurred while building for $OS/$ARCH. Aborting."
         exit 1
     fi
 
-    cp "install-$OS-$ARCH.sh" $RELEASE_DIR/$OS-$ARCH/install_fleare.sh
+    cp "scripts/install-$OS-$ARCH.sh" $RELEASE_DIR/$OS-$ARCH/install.sh
+    cp "scripts/$OS-$ARCH.md" $RELEASE_DIR/$OS-$ARCH/README.md
 
     xattr -cr $RELEASE_DIR/$OS-$ARCH
     # Optionally, compress the binary
     tar --disable-copyfile --exclude='*.tar.gz' --exclude='__MACOSX' --exclude='.DS_Store' -czf $RELEASE_DIR/$OS-$ARCH/$OUTPUT_NAME.tar.gz -C $RELEASE_DIR/$OS-$ARCH .
 
-    rm $RELEASE_DIR/$OS-$ARCH/$OUTPUT_NAME
-    rm $RELEASE_DIR/$OS-$ARCH/install_fleare.sh
+    rm $RELEASE_DIR/$OS-$ARCH/$PROJECT_NAME
+    rm $RELEASE_DIR/$OS-$ARCH/install.sh
+    rm $RELEASE_DIR/$OS-$ARCH/README.md
 done
 
-echo "Building docker image...Tag: $VERSION"
-docker build --no-cache --build-arg APP_VERSION=$VERSION_MAJOR-$VERSION_MINOR-$VERSION_PATCH  -t extendsware/fleare:$VERSION .
+echo "Building docker image...Tag: $VERSION_MAJOR-$VERSION_MINOR-$VERSION_PATCH"
+docker build --no-cache --build-arg APP_VERSION=$VERSION_MAJOR-$VERSION_MINOR-$VERSION_PATCH  --progress=plain -t extendsware/fleare:$VERSION_MAJOR-$VERSION_MINOR-$VERSION_PATCH .
 
 echo "Building docker image...Tag: latest"
 docker build --no-cache --build-arg APP_VERSION=$VERSION_MAJOR-$VERSION_MINOR-$VERSION_PATCH -t extendsware/fleare .

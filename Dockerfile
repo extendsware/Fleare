@@ -1,25 +1,84 @@
-FROM debian
+# Multi-stage Dockerfile for Fleare Go Application
+# Stage 1: Build stage
+FROM golang:1.24-alpine AS builder
 
+# Set build arguments
+ARG APP_VERSION
+ARG BUILD_DATE
+
+# Install build dependencies
+RUN apk add --no-cache \
+    git \
+    ca-certificates \
+    tzdata \
+    make \
+    bash
+
+# Set working directory
 WORKDIR /app
 
-ARG APP_VERSION
+# Copy go mod and sum files for dependency caching
+COPY go.mod go.sum ./
 
-COPY releases/linux-amd64/fleare-$APP_VERSION-linux-amd64.tar.gz ./
+# Download dependencies
+RUN go mod download && go mod verify
 
-COPY install-docker.sh ./
+# Copy source code
+COPY . .
 
-RUN tar -xvf fleare-$APP_VERSION-linux-amd64.tar.gz
+# Set build date if not provided
+RUN if [ -z "$BUILD_DATE" ]; then \
+    BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ"); \
+    fi
 
-RUN chmod +x /app/install-docker.sh
+# Build the application with optimization and version info
+RUN CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64 \
+    go build \
+    -a \
+    -installsuffix cgo \
+    -ldflags="-w -s" \
+    -o fleare \
+    .
 
-RUN /app/install-docker.sh
+# Verify the binary
+RUN ./fleare --version
 
-RUN rm /app/install-docker.sh \
-    /app/fleare-$APP_VERSION-linux-amd64.tar.gz \
-    fleare-cli \
-    fleare-$APP_VERSION-linux-amd64  \
-    install_fleare.sh
+# Stage 2: Runtime stage
+FROM alpine:3.19
 
-EXPOSE 4775
+# Install runtime dependencies
+RUN apk add --no-cache \
+    ca-certificates \
+    tzdata \
+    bash \
+    curl \
+    && rm -rf /var/cache/apk/*
 
-CMD ["fleare"]
+# Set working directory
+WORKDIR /app
+
+# Copy binary from builder stage
+COPY --from=builder /app/fleare ./
+
+# Copy static files and configuration if they exist
+COPY --from=builder /app/scripts/install-docker.sh ./install.sh
+
+RUN chmod +x /app/install.sh
+
+RUN bash /app/install.sh
+
+RUN rm /app/fleare
+RUN rm /app/install.sh
+
+RUN tee /app/entrypoint.sh > /dev/null <<'EOL'
+#!/bin/sh
+exec /usr/local/bin/fleare "$@"
+EOL
+
+RUN chmod +x /app/entrypoint.sh
+
+EXPOSE 9219
+
+ENTRYPOINT ["/app/entrypoint.sh"]

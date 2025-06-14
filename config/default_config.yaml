@@ -1,14 +1,12 @@
-# Configuration for My In-Memory Database
-
 # Server settings
 server:
-  host: "0.0.0.0" # Listen on all network interfaces
-  port: 4775 # Port number for the database server
+  host: "127.0.0.1" # Listen on all network interfaces
+  port: 9210 # Port number for the database server
 
 # Logging settings
 logging:
   level: "info" # Logging level: debug, info, warn, error
-  file: "/var/log/mydb/mydb.log" # Log file path
+  file: "/usr/local/fleare/log/fleareDB.log" # Log file path
 
 # Memory settings
 memory:
@@ -27,17 +25,21 @@ security:
 # Data persistence
 persistence:
   enable: true # Enable data persistence
-  path: "/var/lib/mydb/data.db" # Path to store data
-  after_write_count: 100
+  path: "/usr/local/fleare/db" # Path to store data
+  after_write_count: 1 # save data on Path after
+
+shard:
+  mode: "local" # Path to store data
+  shard_count: 2 # save data on Path after
 
 # Backup settings
 backup:
   enable: true # Enable automated backups
   interval_minutes: 60 # Backup interval in minutes
-  backup_dir: "/var/backups/mydb"
+  backup_dir: "/usr/local/fleare/backups"
 
 # Other settings
 misc:
-  max_connections: 100 # Maximum number of client connections
+  max_connections: 200 # Maximum number of client connections
   timeout_seconds: 30 # Timeout for client requests
   strict_insert: true

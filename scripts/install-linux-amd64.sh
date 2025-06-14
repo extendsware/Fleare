@@ -1,7 +1,7 @@
 #!/bin/bash
 
 APP_NAME="fleare"
-APP_BINARY_NAME="fleare-1-0-1-linux-amd64"
+APP_BINARY_NAME="fleare"
 APP_BIN="/usr/local/bin/$APP_NAME"
 CONFIG_DIR="/etc/$APP_NAME"
 CONFIG_FILE="$CONFIG_DIR/config.yaml"
@@ -10,21 +10,23 @@ LOG_DIR="/usr/local/$APP_NAME/log"
 DATA_DIR="/usr/local/$APP_NAME/lib"
 BACKUP_DIR="/usr/local/$APP_NAME/backups"
 
-# Check if script is running on Linux
+# Ensure script is running on Linux
 if [[ "$(uname)" != "Linux" ]]; then
-  echo "This script is intended for Linux OS only." >&2
+  echo "❌ This script is intended for Linux OS only." >&2
   exit 1
 fi
 
-# Check if the user is root
-# if [ "$(id -u)" -ne 0 ]; then
-#   echo "This script must be run as root" >&2
-#   exit 1
-# fi
+# Ensure the binary exists
+if [[ ! -f "./$APP_BINARY_NAME" ]]; then
+  echo "❌ Compiled binary ./$APP_BINARY_NAME not found."
+  exit 1
+fi
 
-# Create installation directory if it doesn't exist
-# echo "Creating application directory $APP_BIN..."
-# sudo mkdir -p "$APP_BIN"
+# Ensure script is run as root
+if [[ "$(id -u)" -ne 0 ]]; then
+  echo "❌ Please run this script as root or with sudo." >&2
+  exit 1
+fi
 
 # Create configuration directory and file
 echo "Creating configuration directory at $CONFIG_DIR..."
@@ -40,12 +42,12 @@ sudo cp $APP_BINARY_NAME $APP_BIN
 sudo chmod +x $APP_BIN
 
 sudo tee "$CONFIG_FILE" > /dev/null <<EOL
-# Configuration for My Fleare Database
+# Configuration for My Infleare Database
 
 # Server settings
 server:
-  host: "0.0.0.0" # Listen on all network interfaces
-  port: 4775 # Port number for the database server
+  host: "127.0.0.1" # Listen on all network interfaces
+  port: 9219 # Port number for the database server
 
 # Logging settings
 logging:
@@ -62,8 +64,8 @@ security:
   enable_auth: true # Enable authentication
   auth_method: "basic" # Authentication method: basic, token, etc.
   users:
-    - username: "admin"
-      password: "admin123" # In a real-world scenario, use hashed passwords!
+    - username: "root"
+      password: "root" # In a real-world scenario, use hashed passwords!
       role: "root"
 
 # Data persistence
@@ -71,6 +73,10 @@ persistence:
   enable: true # Enable data persistence
   path: "$DATA_DIR" # Path to store data
   after_write_count: 100 # save data on Path after
+
+shard:
+  mode: "local" # Path to store data
+  shard_count: 3 # save data on Path after
 
 # Backup settings
 backup:
@@ -80,7 +86,7 @@ backup:
 
 # Other settings
 misc:
-  max_connections: 100 # Maximum number of client connections
+  max_connections: 200 # Maximum number of client connections
   timeout_seconds: 30 # Timeout for client requests
   strict_insert: true
 EOL

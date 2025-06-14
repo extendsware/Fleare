@@ -28,7 +28,7 @@ var listFilterCmd = &common.Command{
 	127.0.0.1:9219> LIST.FILTER myArray ':John'
 	Ok ["John","John"]
 
-	127.0.0.1:9219> LIST.FILTER myArray ':John'
+	127.0.0.1:9219> LIST.FILTER myArray '!John'
 	Ok ["Emily","Michael","Sarah","David","Jessica","Robert","Lisa","James","Jennifer","Emily","Michael","Sarah","David","Jessica","Robert","Lisa","James","Jennifer"]
 	
 	127.0.0.1:9219> LIST.FILTER myArray '~jessica'

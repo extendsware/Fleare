@@ -3,7 +3,6 @@ package config
 import (
 	"log"
 	"os"
-	"path/filepath"
 	"runtime"
 
 	"github.com/parashmaity/fleare/internal/auth"
@@ -13,14 +12,16 @@ import (
 )
 
 const (
-	APP_NAME            = "Fleare"
-	STATUS_SUCCESS      = "Ok"
-	STATUS_ERROR        = "Error"
-	STRICT_INSERT       = true
-	CONFIG_PATH_MAC_OS  = "/etc/fleare"
-	CONFIG_PATH_LINUX   = "/etc/fleare"
-	CONFIG_PATH_WINDOWS = "/etc/fleare"
-	DEFAULT_CONFIG_NAME = "config.yaml"
+	APP_NAME       = "Fleare"
+	STATUS_SUCCESS = "Ok"
+	STATUS_ERROR   = "Error"
+	STRICT_INSERT  = true
+)
+
+var (
+	CONFIG_PATH_MAC_OS  = "/etc/fleare/config.yaml"
+	CONFIG_PATH_LINUX   = "/etc/fleare/config.yaml"
+	CONFIG_PATH_WINDOWS = "/etc/fleare/config.yaml"
 )
 
 // OS Enum using iota
@@ -128,22 +129,25 @@ func GetConfigPath() string {
 		return CONFIG_PATH_LINUX
 	}
 }
+func SetConfigPath(path string) {
+	CONFIG_PATH_MAC_OS, CONFIG_PATH_LINUX, CONFIG_PATH_WINDOWS = path, path, path
+}
 
 // Load JSON Config
 func LoadDefaultConfigYAML() *Configuration {
 	if configInstance == nil {
 
-		file, err := os.ReadFile(filepath.Join(GetConfigPath(), DEFAULT_CONFIG_NAME))
+		file, err := os.ReadFile(GetConfigPath())
 		if err != nil {
 			logger.Error("Failed to load Configuration file", err, map[string]any{
-				"filepath": filepath.Join(GetConfigPath(), DEFAULT_CONFIG_NAME),
+				"filepath": GetConfigPath(),
 			})
 			log.Fatal(err)
 		}
 		err = yaml.Unmarshal(file, &configInstance)
 		if err != nil {
 			logger.Error("Failed to load Configuration file file format error", err, map[string]any{
-				"filepath": filepath.Join(GetConfigPath(), DEFAULT_CONFIG_NAME),
+				"filepath": GetConfigPath(),
 			})
 			log.Fatal(err)
 		}

@@ -1,34 +1,46 @@
 #!/bin/bash
 
 APP_NAME="fleare"
-APP_BINARY_NAME="fleare-1-0-1-linux-amd64"
+APP_BINARY_NAME="fleare"
 APP_BIN="/usr/local/bin/$APP_NAME"
 CONFIG_DIR="/etc/$APP_NAME"
 CONFIG_FILE="$CONFIG_DIR/config.yaml"
 LOG_DIR="/usr/local/$APP_NAME/log"
-DATA_DIR="/usr/local/$APP_NAME/lib"
+DATA_DIR="/usr/local/$APP_NAME/db"
 BACKUP_DIR="/usr/local/$APP_NAME/backups"
+
+# Check if script is running on macOS
+if [[ "$(uname)" != "Darwin" ]]; then
+  echo "This script is intended for macOS only." >&2
+  exit 1
+fi
+
+# Create application directory if it doesn't exist
+echo "Creating application directory at $APP_BIN..."
+# sudo mkdir -p "$APP_BIN"
 
 # Create configuration directory and file
 echo "Creating configuration directory at $CONFIG_DIR..."
-mkdir -p "$CONFIG_DIR"
+sudo mkdir -p "$CONFIG_DIR"
 
 # Create directories for logs, data, and backups
 echo "Creating necessary directories..."
-mkdir -p "$LOG_DIR" "$DATA_DIR" "$BACKUP_DIR"
+sudo mkdir -p "$LOG_DIR" "$DATA_DIR" "$BACKUP_DIR"
 
 # Coping the compiled file to the appropriate location
 echo "Coping the compiled file to $APP_BIN..."
-cp $APP_BINARY_NAME $APP_BIN
-chmod +x $APP_BIN
+sudo cp $APP_BINARY_NAME $APP_BIN
+sudo cp "fleare-cli" "$APP_BIN-cli"
+sudo chmod +x $APP_BIN
 
-tee "$CONFIG_FILE" > /dev/null <<EOL
-# Configuration for My Fleare Database
+# Write configuration file
+sudo tee "$CONFIG_FILE" > /dev/null <<EOL
+# Configuration for My Infleare Database
 
 # Server settings
 server:
-  host: "0.0.0.0" # Listen on all network interfaces
-  port: 4775 # Port number for the database server
+  host: "127.0.0.1" # Listen on all network interfaces
+  port: 9219 # Port number for the database server
 
 # Logging settings
 logging:
@@ -45,8 +57,8 @@ security:
   enable_auth: true # Enable authentication
   auth_method: "basic" # Authentication method: basic, token, etc.
   users:
-    - username: "admin"
-      password: "admin123" # In a real-world scenario, use hashed passwords!
+    - username: "root"
+      password: "root" # In a real-world scenario, use hashed passwords!
       role: "root"
 
 # Data persistence
@@ -54,6 +66,10 @@ persistence:
   enable: true # Enable data persistence
   path: "$DATA_DIR" # Path to store data
   after_write_count: 100 # save data on Path after
+
+shard:
+  mode: "local" # Path to store data
+  shard_count: 3 # save data on Path after
 
 # Backup settings
 backup:
@@ -63,14 +79,13 @@ backup:
 
 # Other settings
 misc:
-  max_connections: 100 # Maximum number of client connections
+  max_connections: 200 # Maximum number of client connections
   timeout_seconds: 30 # Timeout for client requests
   strict_insert: true
 EOL
 
 # Set permissions for the config file
 echo "Setting permissions for $CONFIG_FILE..."
-# chown root:root $CONFIG_FILE
-chmod 644 $CONFIG_FILE
+sudo chmod 644 "$CONFIG_FILE"
 
-echo "Setup complete!"
+echo "Setup complete! Configuration file is located at $CONFIG_FILE"

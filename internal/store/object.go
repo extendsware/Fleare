@@ -9,6 +9,7 @@ const (
 	Map
 	Set
 	List
+	JSON
 )
 
 type Object struct {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	_ "github.com/parashmaity/fleare/commander/json_cmd"
 	_ "github.com/parashmaity/fleare/commander/list_cmd"
 	_ "github.com/parashmaity/fleare/commander/map_cmd"
 	_ "github.com/parashmaity/fleare/commander/num_cmd"

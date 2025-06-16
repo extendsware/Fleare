@@ -30,7 +30,7 @@ var listFilterCmd = &common.Command{
 
 	127.0.0.1:9219> LIST.FILTER myArray '!John'
 	Ok ["Emily","Michael","Sarah","David","Jessica","Robert","Lisa","James","Jennifer","Emily","Michael","Sarah","David","Jessica","Robert","Lisa","James","Jennifer"]
-	
+
 	127.0.0.1:9219> LIST.FILTER myArray '~jessica'
 	Ok ["Jessica","Jessica"]
 
@@ -48,7 +48,7 @@ var listFilterCmd = &common.Command{
 
 	127.0.0.1:9219> LIST.FILTER myNum '<=30'
 	Ok [10,20,30,30,20,20]
-	
+
 	127.0.0.1:9219> LIST.PUSH myObj '{"name":"John", "age":30, "city":"New York"}'
 	Ok 1
 
@@ -95,9 +95,6 @@ func listFilterFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 
 	key := cmd.C.Args[0]
 	path := cmd.C.Args[1]
-
-	q, _ := utils.ParseQuery(path)
-	fmt.Println(q.ArrayFilter, q.Field, q.Value)
 
 	valid, err := utils.IsValidKey(key)
 	if !valid {

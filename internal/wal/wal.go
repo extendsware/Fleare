@@ -45,7 +45,7 @@ type WALSystem struct {
 
 // NewWALSystem creates a new WAL system
 func NewWALSystem(shardCount, batchSize int, walPath string) (*WALSystem, error) {
-	err := os.MkdirAll(walPath, 0644) // Changed permissions to 0755
+	err := os.MkdirAll(walPath, 0755) // Changed permissions to 0755
 	if err != nil {
 		return nil, fmt.Errorf("failed to create WAL directory: %w", err)
 	}
@@ -103,7 +103,7 @@ func (shard *WALShard) Close() error {
 }
 
 func newWALShard(shardId string, batchSize int, path string) (*WALShard, error) {
-	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
 	if err != nil {
 		return nil, err
 	}

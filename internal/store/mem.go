@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/parashmaity/fleare/internal/comm"
@@ -47,7 +48,7 @@ func (m *Memory) Set(key string, value []byte, kind Kind) error {
 	// m.mu.Lock()
 	// defer m.mu.Unlock()
 
-	obj := &comm.Object{Value: value, Kind: uint32(kind), Timestamp: 0}
+	obj := &comm.Object{Value: value, Kind: uint32(kind)}
 	// fmt.Println("mem", obj, string(value))
 	m.Mem[key] = obj
 	return nil
@@ -101,7 +102,7 @@ func (m *Memory) TTL(key string) (int64, error) {
 		delete(m.Mem, key)
 		return -2, nil // Key does not exist (expired)
 	}
-
+	fmt.Println(obj.Timestamp, currentTime)
 	return obj.Timestamp - currentTime, nil
 }
 

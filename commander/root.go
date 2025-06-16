@@ -9,6 +9,7 @@ import (
 	_ "github.com/parashmaity/fleare/commander/map_cmd"
 	_ "github.com/parashmaity/fleare/commander/num_cmd"
 	_ "github.com/parashmaity/fleare/commander/string_cmd"
+	_ "github.com/parashmaity/fleare/commander/ttl_cmd"
 	"github.com/parashmaity/fleare/config"
 	"github.com/parashmaity/fleare/internal/logger"
 	"github.com/parashmaity/fleare/server"

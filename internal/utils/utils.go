@@ -25,6 +25,49 @@ type Query struct {
 	Value       string
 }
 
+// ParseDurationToSeconds parses a duration string in the format where numbers without suffix are seconds, 1s,1m,1h,1d to seconds.
+func ParseDurationToSeconds(durationStr string) (int64, error) {
+	if durationStr == "" {
+		return 0, errors.New("invalid duration format")
+	}
+
+	// Check if it's just a number (default to seconds)
+	if val, err := strconv.ParseInt(durationStr, 10, 64); err == nil {
+		return val, nil
+	}
+
+	// convert duration string to seconds if it has a suffix
+	if strings.HasSuffix(durationStr, "s") {
+		val, err := strconv.ParseInt(durationStr[:len(durationStr)-1], 10, 64)
+		if err != nil {
+			return 0, errors.New("invalid duration format")
+		}
+		return val, nil
+	}
+	if strings.HasSuffix(durationStr, "m") {
+		val, err := strconv.ParseInt(durationStr[:len(durationStr)-1], 10, 64)
+		if err != nil {
+			return 0, errors.New("invalid duration format")
+		}
+		return val * 60, nil
+	}
+	if strings.HasSuffix(durationStr, "h") {
+		val, err := strconv.ParseInt(durationStr[:len(durationStr)-1], 10, 64)
+		if err != nil {
+			return 0, errors.New("invalid duration format")
+		}
+		return val * 3600, nil
+	}
+	if strings.HasSuffix(durationStr, "d") {
+		val, err := strconv.ParseInt(durationStr[:len(durationStr)-1], 10, 64)
+		if err != nil {
+			return 0, errors.New("invalid duration format")
+		}
+		return val * 86400, nil
+	}
+	return 0, errors.New("invalid duration format")
+}
+
 func IsValidKey(s string) (bool, error) {
 
 	if len(s) < 1 || len(s) > 200 {

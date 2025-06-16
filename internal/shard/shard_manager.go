@@ -3,6 +3,7 @@ package shard
 import (
 	"fmt"
 	"strconv"
+	"time"
 	"unsafe"
 
 	"github.com/parashmaity/fleare/config"
@@ -105,7 +106,11 @@ func (sm *ShardManager) RecoverMemory(path string) {
 			if obj == nil {
 				return
 			}
-			shard.M.Set(key, obj.Value, store.Kind(obj.Kind))
+			if obj.Timestamp > 0 {
+				shard.M.SetWithTTL(key, obj.Value, store.Kind(obj.Kind), (obj.Timestamp - time.Now().Unix()))
+			} else {
+				shard.M.Set(key, obj.Value, store.Kind(obj.Kind))
+			}
 		}
 	})
 }

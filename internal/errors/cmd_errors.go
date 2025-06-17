@@ -13,6 +13,7 @@ var (
 	InvalidMapKeyError    = "InvalidMapKeyError"
 	InvalidCharacterError = "InvalidCharacterError"
 	InvalidIndexError     = "InvalidIndexError"
+	InvalidReferenceError = "InvalidReferenceError"
 )
 
 var (

@@ -15,7 +15,6 @@ const (
 	APP_NAME       = "Fleare"
 	STATUS_SUCCESS = "Ok"
 	STATUS_ERROR   = "Error"
-	STRICT_INSERT  = true
 )
 
 var (
@@ -82,7 +81,7 @@ type Configuration struct {
 	Misc struct {
 		MaxConnections int  `yaml:"max_connections"`
 		TimeoutSeconds int  `yaml:"timeout_seconds"`
-		StrictInsert   bool `yaml:"strict_insert"`
+		StrictMode     bool `yaml:"insertmode"`
 	} `yaml:"misc"`
 }
 
@@ -242,7 +241,7 @@ func MergeConfigs(defaultConfig, overrideConfig *Configuration) *Configuration {
 	if overrideConfig.Misc.TimeoutSeconds != 0 {
 		defaultConfig.Misc.TimeoutSeconds = overrideConfig.Misc.TimeoutSeconds
 	}
-	defaultConfig.Misc.StrictInsert = overrideConfig.Misc.StrictInsert
+	defaultConfig.Misc.StrictMode = overrideConfig.Misc.StrictMode
 
 	return defaultConfig
 }

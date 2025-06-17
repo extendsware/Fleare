@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/parashmaity/fleare/commander/common"
+	"github.com/parashmaity/fleare/config"
 	"github.com/parashmaity/fleare/internal/comm"
 	errors "github.com/parashmaity/fleare/internal/errors"
 	"github.com/parashmaity/fleare/internal/store"
@@ -12,15 +13,15 @@ import (
 )
 
 var jsonRefSetCmd = &common.Command{
-	Name:        "JSON.REFSET",
+	Name:        "JSON.SETREF",
 	Description: ``,
 
-	Syntax: "JSON.REFSET <key> <value> <ref_object>",
+	Syntax: "JSON.SETREF <key> <value> <ref_object>",
 	Example: `
 	localhost:9219> JSON.SET users:001 '{"name":"John","age":30,"hobbies":["reading","hiking"]}'
 	Ok
 
-	localhost:9219> JSON.REFSET orders:OD001 '{"orderId":"orders:OD001","details":"This order is for a new laptop.","status":"pending","trackingNumber":"ABC123","deliveryDate":"2023-06-15","amount":1000.5}' '{"userId":"users:001"}'
+	localhost:9219> JSON.SETREF orders:OD001 '{"orderId":"orders:OD001","details":"This order is for a new laptop.","status":"pending","trackingNumber":"ABC123","deliveryDate":"2023-06-15","amount":1000.5}' '{"userId":"users:001"}'
 	Ok
 
 	localhost:9219> JSON.GET orders:OD001
@@ -34,7 +35,7 @@ var jsonRefSetCmd = &common.Command{
 	  "userId": "$ref:users:001"
 	}
 
-	localhost:9219> JSON.REFSET orders:OD001 '{"orderId":"orders:OD001","details":"This order is for a new laptop.","status":"pending","trackingNumber":"ABC123","deliveryDate":"2023-06-15","amount":1000.5}' '{"userId":"users:001","productId":"products:001"}'
+	localhost:9219> JSON.SETREF orders:OD001 '{"orderId":"orders:OD001","details":"This order is for a new laptop.","status":"pending","trackingNumber":"ABC123","deliveryDate":"2023-06-15","amount":1000.5}' '{"userId":"users:001","productId":"products:001"}'
 	Ok
 
 	localhost:9219> JSON.GET orders:OD001
@@ -48,6 +49,12 @@ var jsonRefSetCmd = &common.Command{
 	  "trackingNumber": "ABC123",
 	  "userId": "$ref:users:001"
 	}
+
+	localhost:9219> JSON.SET offers:001 '{"offer":{"offerId": "001","code":"MDX50","flat":true}}'
+	Ok
+
+	JSON.SETREF orders:OD001 '{"orderId":"orders:OD001","details":"This order is for a new laptop.","status":"pending","trackingNumber":"ABC123","deliveryDate":"2023-06-15","amount":1000.5,"offer":{"name":"Offer one"}}' '{"userId":"users:001","productId":"products:001","offer.offerId":"offers:001"}'
+	Ok
 
 	`,
 	Execute: jsonRefSetFunc,
@@ -64,7 +71,7 @@ func jsonRefSetFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 	}
 
 	if len(cmd.C.Args) != 3 {
-		return nil, fmt.Errorf("%s: invalid number of arguments, Syntax: JSON.REFSET <key> <value> <ref_object>", errors.InvalidArgsError)
+		return nil, fmt.Errorf("%s: invalid number of arguments, Syntax: JSON.SETREF <key> <value> <ref_object>", errors.InvalidArgsError)
 	}
 
 	key := cmd.C.Args[0]
@@ -95,12 +102,15 @@ func jsonRefSetFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 	}
 
 	for k, v := range ref {
-		s := cmd.SM.GetShardByKey(v)
-		obj, _ := s.M.Get(v)
-		if obj == nil {
-			return nil, fmt.Errorf("%s: %s", errors.InvalidReferenceError, fmt.Sprintf("reference key %s not found", v))
+		if config.GetConfig().Misc.StrictMode {
+			s := cmd.SM.GetShardByKey(v)
+			obj, _ := s.M.Get(v)
+			if obj == nil {
+				return nil, fmt.Errorf("%s: %s", errors.InvalidReferenceError, fmt.Sprintf("reference key %s not found", v))
+			}
 		}
-		M[k] = fmt.Sprintf("$ref:%s", v)
+		addNestedKey(M, k, fmt.Sprintf("$ref:%s", v))
+		// M[k] = fmt.Sprintf("$ref:%s", v)
 	}
 
 	shard := cmd.SM.GetShardByKey(key)
@@ -110,7 +120,7 @@ func jsonRefSetFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 		return nil, err
 	}
 
-	// cmd.SM.Wal().Put(key, &comm.Object{Value: value, Kind: uint32(store.JSON)})
+	cmd.SM.Wal().Put(key, &comm.Object{Value: value, Kind: uint32(store.JSON)})
 
 	return &common.CmdResponse{
 		D: &comm.Response{

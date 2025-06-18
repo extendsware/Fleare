@@ -10,6 +10,7 @@ import (
 var echoCmd = &Command{
 	Name:        "PING",
 	Description: "PONG back the input",
+	Syntax:      "PING [<args>]",
 	Example: `
 	localhost:9219> ping
 	Ok PONG

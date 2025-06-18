@@ -53,7 +53,7 @@ var jsonRefSetCmd = &common.Command{
 	localhost:9219> JSON.SET offers:001 '{"offer":{"offerId": "001","code":"MDX50","flat":true}}'
 	Ok
 
-	JSON.SETREF orders:OD001 '{"orderId":"orders:OD001","details":"This order is for a new laptop.","status":"pending","trackingNumber":"ABC123","deliveryDate":"2023-06-15","amount":1000.5,"offer":{"name":"Offer one"}}' '{"userId":"users:001","productId":"products:001","offer.offerId":"offers:001"}'
+	localhost:9219> JSON.SETREF orders:OD001 '{"orderId":"orders:OD001","details":"This order is for a new laptop.","status":"pending","trackingNumber":"ABC123","deliveryDate":"2023-06-15","amount":1000.5,"offer":{"name":"Offer one"}}' '{"userId":"users:001","productId":"products:001","offer.offerId":"offers:001"}'
 	Ok
 
 	`,

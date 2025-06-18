@@ -5,3 +5,17 @@ go run main.go -loglevel=debug   # Logs debug, info, warn, error
 go run main.go -loglevel=info    # Logs info, warn, error
 go run main.go -loglevel=warn    # Logs warn, error
 go run main.go -loglevel=error   # Logs only errors
+
+
+create detail user guide documents for to use with input and output examples
+doc structure
+* Command
+* Overview
+* Command Name
+* Description
+* Syntax
+* Permissions
+* Input Examples
+* Output Examples
+* Behavior on Error
+* Use Cases

@@ -17,6 +17,7 @@ type Status struct {
 var statusCmd = &Command{
 	Name:        "STATUS",
 	Description: "Get status of the server",
+	Syntax:      "STATUS",
 	Example: `
 	localhost:9219> status
 	Ok {

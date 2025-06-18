@@ -87,23 +87,25 @@ func jsonGetFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 
 	if len(cmd.C.Args) == 1 {
 		return sentResponse(obj.Value, nil)
-	}
+	} else {
+		var M map[string]interface{}
+		path := cmd.C.Args[1]
+		if err := json.Unmarshal(obj.Value, &M); err != nil {
+			return nil, fmt.Errorf("%s: %s", errors.InvalidCharacterError, err.Error())
+		}
 
-	var M map[string]interface{}
-	path := cmd.C.Args[1]
-	if err := json.Unmarshal(obj.Value, &M); err != nil {
-		return nil, fmt.Errorf("%s: %s", errors.InvalidCharacterError, err.Error())
-	}
-	d, _ := readNestedKey(M, path)
+		d, _ := readNestedKey(M, path)
+		if d == nil {
+			return sentResponse([]byte(""), nil)
+		}
 
-	if len(cmd.C.Args) == 3 {
-		refRead(M, cmd.C.Args[2:], cmd.SM)
+		if len(cmd.C.Args) > 2 {
+			refRead(d.(map[string]interface{}), cmd.C.Args[2:], cmd.SM)
+		}
+
 		v := utils.ObjectToByte(d)
 		return sentResponse(v, nil)
 	}
-
-	v := utils.ObjectToByte(d)
-	return sentResponse(v, nil)
 }
 
 // ref can be single and nested ["userId", "productId", "offer.offerId"]
@@ -224,6 +226,10 @@ func resolveReference(obj map[string]interface{}, refPath string, sm *shard.Shar
 }
 
 func readNestedKey(obj map[string]interface{}, path string) (interface{}, error) {
+	if path == "" {
+		return obj, nil
+	}
+
 	keys := strings.Split(path, ".")
 
 	current := obj

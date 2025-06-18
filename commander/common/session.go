@@ -8,6 +8,7 @@ import (
 var sessionCmd = &Command{
 	Name:        "SESSION",
 	Description: "Return current Session",
+	Syntax:      "SESSION",
 	Example: `
 	localhost:9219> session
 	Ok {

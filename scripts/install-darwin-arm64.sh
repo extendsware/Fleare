@@ -80,7 +80,7 @@ backup:
 misc:
   max_connections: 200 # Maximum number of client connections
   timeout_seconds: 30 # Timeout for client requests
-  strict_insert: true
+  strict_mode: true
 EOL
 
 echo "Setup complete! Configuration file is located at $CONFIG_FILE"

@@ -63,7 +63,18 @@ func listGPopFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 		if store.List != store.Kind(obj.Kind) {
 			return nil, fmt.Errorf("%s: the existing value for the provided key must be a list", errors.InvalidValueError)
 		}
+	} else {
+		return nil, fmt.Errorf("%s: key does not exist", errors.InvalidKeyError)
 	}
+
+	if len(arr) == 0 {
+		return &common.CmdResponse{
+			D: &comm.Response{
+				Result: []byte(""),
+			},
+		}, nil
+	}
+
 	last := arr[len(arr)-1]
 
 	objBytes := utils.ObjectToByte(arr[:len(arr)-1])

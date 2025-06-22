@@ -13,6 +13,7 @@ import (
 var getCmd = &Command{
 	Name:        "GET",
 	Description: "Get a value by key",
+	Syntax:      "GET <key> [<path>]",
 	Example: `
 	localhost:9219> GET key value
 	Ok

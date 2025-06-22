@@ -18,35 +18,35 @@ import (
 // Regex match on fields (already partially done with ~=re)
 
 var listFilterCmd = &common.Command{
-	Name:        "LIST.FILTER",
+	Name:        "LIST.FIND",
 	Description: "filter the list of element(s) by using path. An error is returned for out of range indexes.",
-	Syntax:      "LIST.FILTER <key> <path>",
+	Syntax:      "LIST.FIND <key> <path>",
 	Example: `
 	127.0.0.1:9219> LIST.SET myArray "John" "Emily" "Michael" "Sarah" "David" "Jessica" "Robert" "Lisa" "James" "Jennifer" "John" "Emily" "Michael" "Sarah" "David" "Jessica" "Robert" "Lisa" "James" "Jennifer"
 	Ok 20
 
-	127.0.0.1:9219> LIST.FILTER myArray ':John'
+	127.0.0.1:9219> LIST.FIND myArray ':John'
 	Ok ["John","John"]
 
-	127.0.0.1:9219> LIST.FILTER myArray '!John'
+	127.0.0.1:9219> LIST.FIND myArray '!John'
 	Ok ["Emily","Michael","Sarah","David","Jessica","Robert","Lisa","James","Jennifer","Emily","Michael","Sarah","David","Jessica","Robert","Lisa","James","Jennifer"]
 
-	127.0.0.1:9219> LIST.FILTER myArray '~jessica'
+	127.0.0.1:9219> LIST.FIND myArray '~jessica'
 	Ok ["Jessica","Jessica"]
 
 	127.0.0.1:9219> LIST.SET myNum 10 20 30 40 50 60 70 30 20 40 20 70
 	Ok 12
 
-	127.0.0.1:9219> LIST.FILTER myNum ':20'
+	127.0.0.1:9219> LIST.FIND myNum ':20'
 	Ok [20,20,20]
 
-	127.0.0.1:9219> LIST.FILTER myNum '!20'
+	127.0.0.1:9219> LIST.FIND myNum '!20'
 	Ok [10,30,40,50,60,70,30,40,70]
 
-	127.0.0.1:9219> LIST.FILTER myNum '>50'
+	127.0.0.1:9219> LIST.FIND myNum '>50'
 	Ok [60,70,70]
 
-	127.0.0.1:9219> LIST.FILTER myNum '<=30'
+	127.0.0.1:9219> LIST.FIND myNum '<=30'
 	Ok [10,20,30,30,20,20]
 
 	127.0.0.1:9219> LIST.PUSH myObj '{"name":"John", "age":30, "city":"New York"}'
@@ -61,19 +61,19 @@ var listFilterCmd = &common.Command{
 	127.0.0.1:9219> LIST.PUSH myObj '{"name":"Michael", "age":25, "city":"Kolkata", "preferences": {"theme": "white"}}'
 	Ok 4
 
-	127.0.0.1:9219> LIST.FILTER myObj '$name:John'
+	127.0.0.1:9219> LIST.FIND myObj '$name:John'
 	Ok [{"age":30,"city":"New York","name":"John"}]
 
-	127.0.0.1:9219> LIST.FILTER myObj '$city:New York'
+	127.0.0.1:9219> LIST.FIND myObj '$city:New York'
 	Ok [{"age":30,"city":"New York","name":"John"},{"age":40,"city":"New York","name":"Robert","preferences":{"theme":"dark"}}]
 
-	127.0.0.1:9219> LIST.FILTER myObj '$age>=28'
+	127.0.0.1:9219> LIST.FIND myObj '$age>=28'
 	Ok [{"age":30,"city":"New York","name":"John"},{"age":40,"city":"New York","name":"Robert","preferences":{"theme":"dark"}},{"age":28,"city":"Kolkata","name":"David","preferences":{"theme":"dark"}}]
 
-	127.0.0.1:9219> LIST.FILTER myObj '$preferences.theme:white'
+	127.0.0.1:9219> LIST.FIND myObj '$preferences.theme:white'
 	Ok [{"age":25,"city":"Kolkata","name":"Michael","preferences":{"theme":"white"}}]
 
-	127.0.0.1:9219> LIST.FILTER myObj '$preferences.theme!white'
+	127.0.0.1:9219> LIST.FIND myObj '$preferences.theme!white'
 	Ok [{"age":40,"city":"New York","name":"Robert","preferences":{"theme":"dark"}},{"age":28,"city":"Kolkata","name":"David","preferences":{"theme":"dark"}}]
 	`,
 	Execute: listFilterFunc,
@@ -90,7 +90,7 @@ func listFilterFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 	}
 
 	if len(cmd.C.Args) != 2 {
-		return nil, fmt.Errorf("%s: invalid number of arguments, Syntax: LIST.FILTER <key> <path>", errors.InvalidArgsError)
+		return nil, fmt.Errorf("%s: invalid number of arguments, Syntax: LIST.FIND <key> <path>", errors.InvalidArgsError)
 	}
 
 	key := cmd.C.Args[0]

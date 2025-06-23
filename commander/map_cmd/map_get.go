@@ -11,30 +11,31 @@ import (
 )
 
 var mapGetCmd = &common.Command{
-	Name:        "MAP.GET",
-	Description: "MAP.GET key mapKey",
+	Name:   "MAP.GET",
+	Syntax: "MAP.GET <key> [<mapKey>]",
+	Description: `Retrieves a map stored at the given key. If only the key is provided, returns the full map.
+					If a map key is also provided, returns the value associated with that specific key in the map.
+					Useful for accessing structured data such as user devices or settings.`,
 	Example: `
-	localhost:9219> map.get
+	localhost:9219> map.get user-001:devices
 	Ok {
-	  "m1": 123.33,
-	  "m2": true,
-	  "m3": "this is a test message...123",
-	  "m4": {
-	    "add": {
-	      "location": "kolkata"
-	    },
-	    "name": "parash"
+	  "device-663abc5352": {
+	    "batteryLevel": "75%",
+	    "deviceName": "iPhone 14 Pro",
+	    "osVersion": "iOS 16"
+	  },
+	  "device-6d6f6sa66d": {
+	    "batteryLevel": "85%",
+	    "deviceName": "Pixel 7 Pro",
+	    "osVersion": "Android 14"
 	  }
 	}
 
-	localhost:9219> map.get m4
+	map.get user-001:devices device-663abc5352
 	Ok {
-	  "m4": {
-	    "add": {
-	      "location": "kolkata"
-	    },
-	    "name": "parash"
-	  }
+	  "batteryLevel": "75%",
+	  "deviceName": "iPhone 14 Pro",
+	  "osVersion": "iOS 16"
 	}
 	`,
 	Execute: mapGetKey,

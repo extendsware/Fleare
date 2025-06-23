@@ -7,14 +7,22 @@ import (
 	"github.com/parashmaity/fleare/commander/common"
 	"github.com/parashmaity/fleare/internal/comm"
 	errors "github.com/parashmaity/fleare/internal/errors"
+	"github.com/parashmaity/fleare/internal/store"
 	"github.com/parashmaity/fleare/internal/utils"
 )
 
 var mapDeleteCmd = &common.Command{
-	Name:        "MAP.DELETE",
-	Description: "MAP.DELETE delete only existing map key",
+	Name:   "MAP.DELETE",
+	Syntax: "MAP.DELETE <key> <mapKey>",
+	Description: `Deletes a key or a specific field from a map. If only key is provided, deletes the entire map.
+					If both key and mapKey are provided, deletes only the specified field from the map.`,
 	Example: `
-	localhost:9219> map.delete user-001:devices device-6d6f6sa66d
+	# Delete a specific field from a map
+	localhost:9219> MAP.DELETE user-001:devices device-6d6f6sa66d
+	Ok
+
+	# Delete an entire map
+	localhost:9219> MAP.DELETE user-001:settings
 	Ok
 	`,
 	Execute: mapDeleteKey,
@@ -47,25 +55,31 @@ func mapDeleteKey(cmd *common.Cmd) (*common.CmdResponse, error) {
 		if !utils.IsValidString(mk) {
 			return nil, fmt.Errorf("%s: %s", errors.InvalidMapKeyError, err.Error())
 		}
-		obj, err := shard.M.Get(key)
-		if err != nil {
-			return nil, err
+		obj, _ := shard.M.Get(key)
+		if obj == nil {
+			return &common.CmdResponse{
+				D: &comm.Response{
+					Result: []byte(""),
+				},
+			}, nil
 		}
 
-		if obj != nil {
-			M := make(map[string]any)
-			if err := json.Unmarshal(obj.Value, &M); err != nil {
-				return nil, fmt.Errorf("%s: %s", errors.InvalidCharacterError, err.Error())
-			}
+		M := make(map[string]any)
+		if err := json.Unmarshal(obj.Value, &M); err != nil {
+			return nil, fmt.Errorf("%s: %s", errors.InvalidCharacterError, err.Error())
+		}
 
-			if len(M) == 1 {
-				shard.M.Delete(key)
-				cmd.SM.Wal().Delete(key)
-			} else {
-				delete(M, mk)
-				obj.Value = utils.ObjectToByte(M)
-				cmd.SM.Wal().Put(key, obj)
-			}
+		if store.Map != store.Kind(obj.Kind) {
+			return nil, fmt.Errorf("%s: The current value associated with the provided key must be a Map type", errors.InvalidValueError)
+		}
+
+		if len(M) == 1 {
+			shard.M.Delete(key)
+			cmd.SM.Wal().Delete(key)
+		} else {
+			delete(M, mk)
+			obj.Value = utils.ObjectToByte(M)
+			cmd.SM.Wal().Put(key, obj)
 		}
 	}
 

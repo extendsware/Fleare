@@ -12,15 +12,47 @@ import (
 )
 
 var mapSetCmd = &common.Command{
-	Name:        "MAP.SET",
-	Description: "MAP.SET key mapOnKey value",
+	Name:   "MAP.SET",
+	Syntax: "MAP.SET <key> <mapKey> <value>",
+	Description: `Stores or updates a key-value pair within a map object stored at the specified key.
+					If the map does not exist, it will be created. The <mapKey> is used as the sub-key inside the
+					map, and <value> should be a valid JSON object or value. This command enables structured
+					data storage under a single top-level key.`,
 	Example: `
-	localhost:9219> map.set user-001:devices device-6d6f6sa66d '{
+	localhost:9219> MAP.SET user-001:devices device-6d6f6sa66d '{
 	  "deviceName": "Pixel 7 Pro",
 	  "osVersion": "Android 14",
 	  "batteryLevel": "85%"
 	}'
 	Ok
+
+	localhost:9219> MAP.SET user-001:devices device-663abc5352 '{
+	  "deviceName": "iPhone 14 Pro",
+	  "osVersion": "iOS 16",
+	  "batteryLevel": "85%"
+	}'
+	Ok
+
+	localhost:9219> MAP.GET user-001:devices
+	Ok {
+		device-6d6f6sa66d: {
+			deviceName: "Pixel 7 Pro",
+			osVersion: "Android 14",
+			batteryLevel: "85%"
+		},
+		device-663abc5352: {
+			deviceName: "iPhone 14 Pro",
+			osVersion: "iOS 16",
+			batteryLevel: "85%"
+		}
+	}
+
+	localhost:9219> MAP.GET user-001:devices device-663abc5352
+	Ok {
+		deviceName: "iPhone 14 Pro",
+		osVersion: "iOS 16",
+		batteryLevel: "85%"
+	}
 	`,
 	Execute: mapSetKey,
 }
@@ -32,7 +64,7 @@ func init() {
 func mapSetKey(cmd *common.Cmd) (*common.CmdResponse, error) {
 
 	if cmd.C.Args == nil || len(cmd.C.Args) != 3 {
-		return nil, fmt.Errorf("%s: Key mapKey, and value must be provided", errors.InvalidArgsError)
+		return nil, fmt.Errorf("%s: Key mapKey, and value must be provided, Syntax: MAP.SET <key> <mapKey> <value>", errors.InvalidArgsError)
 	}
 	key := cmd.C.Args[0]
 	mk := cmd.C.Args[1]
@@ -60,6 +92,11 @@ func mapSetKey(cmd *common.Cmd) (*common.CmdResponse, error) {
 			return nil, fmt.Errorf("%s: %s", errors.InvalidCharacterError, err.Error())
 		}
 	}
+
+	if store.Map != store.Kind(obj.Kind) {
+		return nil, fmt.Errorf("%s: The current value associated with the provided key must be a Map type", errors.InvalidValueError)
+	}
+
 	M[mk] = utils.EnsureUnmarshal(value)
 
 	objBytes := utils.ObjectToByte(M)

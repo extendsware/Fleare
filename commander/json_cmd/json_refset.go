@@ -13,8 +13,10 @@ import (
 )
 
 var jsonRefSetCmd = &common.Command{
-	Name:        "JSON.SETREF",
-	Description: ``,
+	Name: "JSON.SETREF",
+	Description: `The JSON.SETREF command stores a JSON object at a specified key in the database and simultaneously
+					replaces specified fields with reference pointers to other keys. This allows relational-like linking
+					between JSON documents using reference tags. This command is useful for creating relationships between JSON documents.`,
 
 	Syntax: "JSON.SETREF <key> <value> <ref_object>",
 	Example: `

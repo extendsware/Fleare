@@ -11,30 +11,37 @@ import (
 )
 
 var mapCSetCmd = &common.Command{
-	Name:        "MAP.CSET",
-	Description: "MAP.CSET clean all existing map keys and value and add new one based on the provided new map key and value",
+	Name:   "MAP.CSET",
+	Syntax: "MAP.CSET <key> <mapKey> <value>",
+	Description: `Sets or updates a key-value pair inside a map stored at the specified key.
+					The entire map is overwritten with a new map containing only the provided mapKey and value.
+					This effectively replaces any existing data stored under the given key with a single-entry map.`,
 	Example: `
-	localhost:9219> map.set user-001:devices device-6d6f6sa66d '{
+	localhost:9219> MAP.CSET user-001:devices device-6d6f6sa66d '{
 	  "deviceName": "Pixel 7 Pro",
 	  "osVersion": "Android 14",
 	  "batteryLevel": "85%"
 	}'
 	Ok
 
-	Get Output example 1:
-	localhost:9219> map.get user-001:devices
-	device-6d6f6sa66d {
+	localhost:9219> MAP.GET user-001:devices
+	Ok {
 	  "deviceName": "Pixel 7 Pro",
 	  "osVersion": "Android 14",
 	  "batteryLevel": "85%"
 	}
 
-	Get Output example 2:
-	localhost:9219> map.get user-001:devices device-6d6f6sa66d
-	{
-	  "deviceName": "Pixel 7 Pro",
-	  "osVersion": "Android 14",
-	  "batteryLevel": "85%"
+	localhost:9219> MAP.CSET user-001:devices device-663abc5352 '{
+	  "deviceName": "iPhone 14 Pro",
+	  "osVersion": "iOS 16",
+	  "batteryLevel": "75%"
+	}'
+
+	localhost:9219> MAP.GET user-001:devices
+	Ok {
+		"deviceName": "iPhone 14 Pro",
+		"osVersion": "iOS 16",
+		"batteryLevel": "75%"
 	}
 	`,
 	Execute: mapCSetKey,

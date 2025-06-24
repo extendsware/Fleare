@@ -12,17 +12,17 @@ import (
 )
 
 var mapDeleteCmd = &common.Command{
-	Name:   "MAP.DELETE",
-	Syntax: "MAP.DELETE <key> <mapKey>",
+	Name:   "MAP.DEL",
+	Syntax: "MAP.DEL <key> <mapKey>",
 	Description: `Deletes a key or a specific field from a map. If only key is provided, deletes the entire map.
 					If both key and mapKey are provided, deletes only the specified field from the map.`,
 	Example: `
 	# Delete a specific field from a map
-	localhost:9219> MAP.DELETE user-001:devices device-6d6f6sa66d
+	localhost:9219> MAP.DEL user-001:devices device-6d6f6sa66d
 	Ok
 
 	# Delete an entire map
-	localhost:9219> MAP.DELETE user-001:settings
+	localhost:9219> MAP.DEL user-001:settings
 	Ok
 	`,
 	Execute: mapDeleteKey,

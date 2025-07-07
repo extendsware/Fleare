@@ -21,9 +21,9 @@ This manual will guide you through the installation and initial setup of the `Fl
 
 #### Download the installation file and extract zip file
 
- * Download (`Apple Silicon`) file 👉 [fleare-1-0-1-darwin-arm64.tar.gz](https://www.bakemyweb.com/files/public/32/15/67b778664b7fb7001ed53215/d/8f/91/67ceaafd015b80001e818f91?name=infleare-1-0-1-darwin-arm64.tar.gz&mimetype=application/x-gzip&cd=attachment)
+ * Download (`Apple Silicon`) file 👉 [fleare-1-0-1-darwin-arm64.tar.gz](https://www.fleare.com/download/binary/fleare-1-0-1-darwin-arm64.tar.gz)
 
- * Download (`amd64`) file 👉 [fleare-1-0-1-darwin-amd64.tar.gz](https://www.bakemyweb.com/files/public/32/15/67b778664b7fb7001ed53215/d/8f/91/67ceaafd015b80001e818f91?name=infleare-1-0-1-darwin-amd64.tar.gz&mimetype=application/x-gzip&cd=attachment)
+ * Download (`amd64`) file 👉 [fleare-1-0-1-darwin-amd64.tar.gz](https://www.fleare.com/download/binary/fleare-1-0-1-darwin-amd64.tar.gz)
 
 
  1. Unzip the Installation zip file (`fleare-1-0-1-darwin-arm64.tar.gz`)

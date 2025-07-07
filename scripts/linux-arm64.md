@@ -1,80 +1,67 @@
-Here is an **Installation User Manual** document for the provided Linux ARM64 script for setting up the `Fleare` application.
+
+---
+### Fleare Installation Manual 
+---
+
+`(Linux - arm64)`
+
+Here is a **user installation manual document** for the provided `fleare` Linux installation script (for `linux-arm64`):
 
 ---
 
-# 🛠️ Fleare Installation Guide (Linux ARM64)
+### Overview
 
-## 📋 Overview
-
-This guide provides step-by-step instructions to install and run the `Fleare` application on a **Linux ARM64** system using the included installation script. It configures binaries, sets up a configuration file, and creates a `systemd` service to manage the application.
+This document provides step-by-step instructions for installing and configuring the `Fleare` application on a **Linux (arm64)** system using the provided shell script.
 
 ---
 
-## ✅ Prerequisites
+### System Requirements
 
-1. **Linux ARM64** system
-2. **Root access** (or `sudo` privileges)
-3. `fleare` **compiled binary** placed in the same directory as the installation script
-4. `bash` shell
-
----
-
-## 📦 Installation Steps
-
-### 1. Place the Binary
-
-Ensure the compiled binary of `Fleare` is named `fleare` and is in the same directory as the install script:
-
-```bash
-ls
-> install.sh fleare
-```
+* **Operating System:** Linux (64-bit)
+* **User Access:** `sudo` privileges
+* **Dependencies:** None required beyond standard Linux utilities (e.g., `systemd`)
 
 ---
 
-### 2. Make Script Executable
+### Installation Steps
 
-```bash
+#### Download the installation file and extract zip file
+
+ 1. Download file 👉 [fleare-1-0-1-linux-arm64.tar.gz](https://www.fleare.com/download/binary/fleare-1-0-1-linux-arm64.tar.gz)
+ 2. Unzip the Installation zip file (`fleare-1-0-1-linux-arm64.tar.gz`)
+ 3. Ensure the script has execution permissions.
+ 4. Read `README.md` for installation guide.
+
+---
+
+### Installation Instructions
+
+#### 1. **Prepare the Binary**
+
+Ensure the compiled Fleare binary is named `fleare` and is in the same directory as the script.
+
+#### 2. **Run the Installer Script permissions**
+
+```bash 
 chmod +x install.sh
 ```
 
----
+#### 3. **Run the Installer Script**
+```bash 
+./install.sh
+```
 
-### 3. Run the Script
+or
 
-```bash
+```bash 
 sudo ./install.sh
 ```
 
-The script will:
-
-* Create necessary directories:
-
-  * Config: `/etc/fleare`
-  * Logs: `/usr/local/fleare/log`
-  * Data: `/usr/local/fleare/lib`
-  * Backups: `/usr/local/fleare/backups`
-* Copy binary to: `/usr/local/bin/fleare`
-* Generate config at: `/etc/fleare/config.yaml`
-* Create a `systemd` service at: `/etc/systemd/system/fleare.service`
-* Enable and start the service
+> **Note:** Ensure you're running as a user with `sudo` privileges. You don't need to switch to `root`.
 
 ---
 
-## 📂 File Structure After Installation
-
-| File/Directory                       | Description                |
-| ------------------------------------ | -------------------------- |
-| `/usr/local/bin/fleare`              | Application binary         |
-| `/etc/fleare/config.yaml`            | Configuration file         |
-| `/usr/local/fleare/log/`             | Log directory              |
-| `/usr/local/fleare/lib/`             | Data persistence directory |
-| `/usr/local/fleare/backups/`         | Automated backup storage   |
-| `/etc/systemd/system/fleare.service` | Systemd service definition |
-
----
-
-## 🔐 What the Script Does
+### What the Script Does
 
 1. **Validates Linux OS**.
 2. **Creates necessary directories** for config, data, logs, and backups.
@@ -85,15 +72,51 @@ The script will:
 
 ---
 
-## 🔧 Configuration
+### Directory Structure
 
-A default config is created at `/etc/fleare/config.yaml` with the following sections:
-
-⚠️ **Change the default password** before going to production.
+| Path                                 | Description                |
+| ------------------------------------ | -------------------------- |
+| `/usr/local/bin/fleare`              | Binary executable          |
+| `/etc/fleare/config.yaml`            | Main configuration file    |
+| `/usr/local/fleare/log/`             | Log directory              |
+| `/usr/local/fleare/lib/`             | Data storage directory     |
+| `/usr/local/fleare/backups/`         | Backup files directory     |
+| `/etc/systemd/system/fleare.service` | Systemd service definition |
 
 ---
 
-## 🖥️ Managing the Service
+
+### Configuration
+
+The default configuration is located at:
+
+```
+/etc/fleare/config.yaml
+```
+
+#### Example Snippet:
+
+```yaml
+server:
+  host: "127.0.0.1"
+  port: 9219
+
+logging:
+  level: "info"
+  file: "/usr/local/fleare/log/fleareDB.log"
+
+security:
+  enable_auth: true
+  users:
+    - username: "root"
+      password: "root"
+```
+
+You can manually edit this file as needed.
+
+---
+
+### Managing the Service
 
 | Command                         | Description          |
 | ------------------------------- | -------------------- |
@@ -105,20 +128,43 @@ A default config is created at `/etc/fleare/config.yaml` with the following sect
 
 ---
 
-## 🧼 Uninstallation (Optional)
+### Backups
 
-```bash
+Automated backups will be created in:
+
+```
+/usr/local/fleare/backups/
+```
+
+By default, backups run every 60 minutes.
+
+---
+
+### Uninstallation
+
+To remove Fleare:
+
+```bash 
 sudo systemctl stop fleare
 sudo systemctl disable fleare
-sudo rm /etc/systemd/system/fleare.service
 sudo rm /usr/local/bin/fleare
 sudo rm -rf /usr/local/fleare
-sudo rm -rf /etc/fleare
+sudo rm /etc/fleare/config.yaml
+sudo rm /etc/systemd/system/fleare.service
 sudo systemctl daemon-reload
 ```
 
 ---
 
-## 📞 Support
+### Post-Installation Checklist
 
-For issues or enhancements, contact the Fleare development team or visit the official repository (if applicable).
+* [ ] Confirm binary is in `/usr/local/bin/`
+* [ ] Confirm `fleare` service is running
+* [ ] Test connection on port `9219`
+* [ ] Secure configuration with hashed passwords
+
+---
+
+### Support
+
+For assistance, please contact the Fleare development team or visit the repository documentation.

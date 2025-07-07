@@ -1,7 +1,13 @@
 
-## Fleare Installation Manual (Linux - amd64)
+---
+### Fleare Installation Manual 
+---
+
+`(Linux - amd64)`
+
 Here is a **user installation manual document** for the provided `fleare` Linux installation script (for `linux-amd64`):
 
+---
 
 ### Overview
 
@@ -21,8 +27,8 @@ This document provides step-by-step instructions for installing and configuring 
 
 #### Download the installation file and extract zip file
 
- 1. Download file 👉 [infleare-1-0-1-linux-amd64.tar.gz](https://www.bakemyweb.com/files/public/32/15/67b778664b7fb7001ed53215/d/8f/85/67ceaaf7015b80001e818f85?name=infleare-1-0-1-linux-amd64.tar.gz&mimetype=application/x-gzip&cd=attachment)
- 2. Unzip the Installation zip file (`infleare-1-0-1-linux-amd64.tar.gz`)
+ 1. Download file 👉 [fleare-1-0-1-linux-amd64.tar.gz](https://www.fleare.com/download/binary/fleare-1-0-1-linux-amd64.tar.gz)
+ 2. Unzip the Installation zip file (`fleare-1-0-1-linux-amd64.tar.gz`)
  3. Ensure the script has execution permissions.
  4. Read `README.md` for installation guide.
 
@@ -36,18 +42,18 @@ Ensure the compiled Fleare binary is named `fleare` and is in the same directory
 
 #### 2. **Run the Installer Script permissions**
 
-```bash {style = github-dark}
+```bash 
 chmod +x install.sh
 ```
 
 #### 3. **Run the Installer Script**
-```bash {style = github-dark}
+```bash 
 ./install.sh
 ```
 
 or
 
-```bash {style = github-dark}
+```bash 
 sudo ./install.sh
 ```
 
@@ -138,7 +144,7 @@ By default, backups run every 60 minutes.
 
 To remove Fleare:
 
-```bash {style = github-dark}
+```bash 
 sudo systemctl stop fleare
 sudo systemctl disable fleare
 sudo rm /usr/local/bin/fleare

@@ -1,18 +1,20 @@
-# Fleare Docker Deployment Documentation
+#### Docker Deployment
 
-#### Running Fleare with `docker run`
+---
+
+#### Running with `docker run`
 
 You can start the Fleare service using the `docker run` command while passing a YAML configuration as an environment variable.
 
 #### Command:
 
-```bash {style = github-dark}
+```bash 
 docker run -p 9219:9219 --name fleare_service --restart unless-stopped extendsware/fleare:latest
 ```
 
 #### Command with config:
 
-```bash {style = github-dark}
+```bash 
 docker run -e "config=$(cat config.yaml)" -p 9219:9219 --name fleare_service --restart unless-stopped extendsware/fleare:latest
 ```
 
@@ -34,7 +36,7 @@ You can use `docker-compose` to define and manage the Fleare service.
 
 #### `docker-compose.yml` Example:
 
-```yaml {style = github-dark}
+```yaml 
 version: '3.8'
 
 services:
@@ -57,7 +59,9 @@ services:
 
 #### Output
 
- ![docker run output](https://www.bakemyweb.com/files/public/32/15/67b778664b7fb7001ed53215/i/a5/e5/684d71a17c5ab8001deaa5e5/original?name=docker-compose-start.png&mimetype=image/png&cd=inline "docker run output")
+{{< image src="/docs/images/docker-compose-start.png" alt="docker run output" width="100%" >}}
+
+<!-- ![docker run output](https:fleare.com/docs/images/docker-compose-start.png) -->
 
 #### Explanation:
 
@@ -85,13 +89,13 @@ services:
 
 To deploy using Docker Compose, run:
 
-```bash {style = github-dark}
+```bash 
 docker-compose up -d
 ```
 
 #### Stopping the Service
 
-```bash {style = github-dark}
+```bash 
 docker-compose down
 ```
 
@@ -99,13 +103,13 @@ docker-compose down
 
 After deployment, verify the service is running with:
 
-```bash {style = github-dark}
+```bash 
 docker ps
 ```
 
 Check logs:
 
-```bash {style = github-dark}
+```bash 
 docker logs fleare_service
 ```
 

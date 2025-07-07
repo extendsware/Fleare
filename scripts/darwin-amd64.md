@@ -1,33 +1,52 @@
-Here's a **User Installation Manual** document for the provided `fleare` installation script.
+
+---
+### Database Installation Manual 
 
 ---
 
-# **Fleare Database Installation Manual (macOS amd64 Only)**
+`(arm64 and amd64)`
 
-## 📄 Overview
+Here's a **User Installation Manual** document for the provided `fleare` installation script.
+
+(`Apple Silicon`) and (`amd64`)
+
+### Overview
 
 This manual will guide you through the installation and initial setup of the `Fleare` database on macOS using the provided Bash installation script.
 
 ---
 
-## 🖥️ System Requirements
+### System Requirements
 
-* **Operating System**: macOS amd64 (required)
+* **Operating System**: macOS arm64 (required)
 * **Privileges**: Root/admin privileges (for directory creation and file placement)
 * **Binary**: Ensure the compiled `fleare` binary is present in the same directory as the script
 
 ---
 
-## 📁 Installation Steps
+#### Download the installation file and extract zip file
 
-### 1. **Prepare the Environment**
+ * Download (`Apple Silicon`) file 👉 [fleare-1-0-1-darwin-arm64.tar.gz](https://www.fleare.com/download/binary/fleare-1-0-1-darwin-arm64.tar.gz)
+
+ * Download (`amd64`) file 👉 [fleare-1-0-1-darwin-amd64.tar.gz](https://www.fleare.com/download/binary/fleare-1-0-1-darwin-amd64.tar.gz)
+
+
+ 1. Unzip the Installation zip file (`fleare-1-0-1-darwin-arm64.tar.gz`)
+ 2. Ensure the script has execution permissions.
+ 3. Read `README.md` for installation guide.
+
+---
+
+### Installation Steps
+
+#### 1. **Prepare the Environment**
 
 Before running the script, ensure:
 
 * The script file is saved, e.g., `install.sh`
 * The `fleare` binary file is compiled and available in the same directory
 
-```bash
+```bash 
 ls
 # Output should include:
 # install.sh  fleare
@@ -35,23 +54,23 @@ ls
 
 ---
 
-### 2. **Run the Installer**
+#### 2. **Run the Installer**
 
 Make the script executable:
 
-```bash
+```bash 
 chmod +x install.sh
 ```
 
 Then run the script using `sudo` to allow system modifications:
 
-```bash
+```bash 
 sudo ./install.sh
 ```
 
 ---
 
-### 3. **Script Actions Explained**
+#### 3. **Script Actions Explained**
 
 The script will:
 
@@ -67,7 +86,7 @@ The script will:
 
 ---
 
-## ⚙️ Configuration File
+### Configuration File
 
 **Path**: `/etc/fleare/config.yaml`
 
@@ -82,15 +101,15 @@ This file controls all runtime behavior. Default sections include:
 * **Backup Scheduling**
 * **Miscellaneous Options**
 
-💡 **Tip**: Modify the configuration file to suit your deployment requirements before running the server.
+ **Tip**: Modify the configuration file to suit your deployment requirements before running the server.
 
 ---
 
-## 🧪 Verification
+### Verification
 
 After installation:
 
-```bash
+```bash 
 which fleare
 # Should return: /usr/local/bin/fleare
 
@@ -100,23 +119,23 @@ cat /etc/fleare/config.yaml
 
 ---
 
-## 🚀 Starting the Application
+### Starting the Application
 
 Once installed, run:
 
-```bash
+```bash 
 fleare
 ```
 
 Monitor the logs:
 
-```bash
+```bash 
 tail -f /usr/local/fleare/log/fleareDB.log
 ```
 
 ---
 
-## 🔐 Default Credentials
+### Default Credentials
 
 * **Username**: `root`
 * **Password**: `root`
@@ -124,18 +143,18 @@ tail -f /usr/local/fleare/log/fleareDB.log
 
 ---
 
-## 📦 Backup & Persistence
+### Backup & Persistence
 
 * **Backups**: Enabled every 60 minutes
 * **Persistence**: Data saved to `/usr/local/fleare/db` after every 100 writes
 
 ---
 
-## 🧹 Uninstallation (Manual)
+### Uninstallation (Manual)
 
 To remove all installed files:
 
-```bash
+```bash 
 sudo rm /usr/local/bin/fleare
 sudo rm -rf /usr/local/fleare
 sudo rm -rf /etc/fleare
@@ -143,6 +162,6 @@ sudo rm -rf /etc/fleare
 
 ---
 
-## 📞 Support
+### Support
 
 For assistance, please contact the Fleare development team or visit the repository documentation.

@@ -23,7 +23,7 @@ cp $APP_BINARY_NAME $APP_BIN
 chmod +x $APP_BIN
 
 tee "$CONFIG_FILE" > /dev/null <<EOL
-# Configuration for My Infleare Database
+# Configuration for Fleare Database
 
 # Server settings
 server:
@@ -32,7 +32,7 @@ server:
 
 # Logging settings
 logging:
-  level: "info" # Logging level: debug, info, warn, error
+  level: "error" # Logging level: debug, info, warn, error
   file: "$LOG_DIR/fleareDB.log" # Log file path
 
 # Memory settings
@@ -42,7 +42,7 @@ memory:
 
 # Security settings
 security:
-  enable_auth: true # Enable authentication
+  enable_auth: false # disabled authentication
   auth_method: "basic" # Authentication method: basic, token, etc.
   users:
     - username: "root"

@@ -57,10 +57,4 @@ for PLATFORM in "${PLATFORMS[@]}"; do
     rm $RELEASE_DIR/$OS-$ARCH/README.md
 done
 
-echo "Building docker image...Tag: $VERSION_MAJOR-$VERSION_MINOR-$VERSION_PATCH"
-docker build --no-cache --build-arg APP_VERSION=$VERSION_MAJOR-$VERSION_MINOR-$VERSION_PATCH  --progress=plain -t extendsware/fleare:$VERSION_MAJOR-$VERSION_MINOR-$VERSION_PATCH .
-
-echo "Building docker image...Tag: latest"
-docker build --no-cache --build-arg APP_VERSION=$VERSION_MAJOR-$VERSION_MINOR-$VERSION_PATCH -t extendsware/fleare .
-
 echo "Build complete. Release files are located in the $RELEASE_DIR directory."

@@ -34,7 +34,7 @@ sudo chmod +x $APP_BIN
 
 # Write configuration file
 sudo tee "$CONFIG_FILE" > /dev/null <<EOL
-# Configuration for My Infleare Database
+# Configuration for Fleare Database
 
 # Server settings
 server:

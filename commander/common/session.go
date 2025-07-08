@@ -1,6 +1,8 @@
 package common
 
 import (
+	"fmt"
+
 	"github.com/parashmaity/fleare/internal/auth"
 	"github.com/parashmaity/fleare/internal/comm"
 )
@@ -31,7 +33,12 @@ func init() {
 
 func sessionAdd(cmd *Cmd) (*CmdResponse, error) {
 
-	d, err := auth.SessionsStore.Store[cmd.ClientID].String()
+	session := auth.GetById(cmd.ClientID)
+	if session == nil {
+		return nil, fmt.Errorf("session not found for client ID: %s", cmd.ClientID)
+	}
+
+	d, err := session.String()
 	if err != nil {
 		return nil, err
 	}

@@ -108,7 +108,10 @@ func (s *Server) StartEventLoop(ctx context.Context) (err error) {
 
 	s.eventLoop = eloop
 
-	s.eventLoop.Register(s.serverFD, multiplexer.EVFILT_READ)
+	if err := s.eventLoop.Register(s.serverFD, multiplexer.EVFILT_READ); err != nil {
+		logger.Error("failed to register server socket for read events", err, map[string]any{"ServerFD": s.serverFD})
+		return err
+	}
 
 	errChan := make(chan error, 1)
 	acceptWg := &sync.WaitGroup{}
@@ -291,7 +294,11 @@ func (s *Server) AcceptNewConnection(ctx context.Context) error {
 					}
 
 					// register read fd operations
-					s.eventLoop.Register(clientFD, multiplexer.EVFILT_READ)
+					if err := s.eventLoop.Register(clientFD, multiplexer.EVFILT_READ); err != nil {
+						logger.Error("failed to register client socket for read events", err, map[string]any{"ClientFD": clientFD})
+						unix.Close(clientFD)
+						return nil
+					}
 
 					// Try to get a thread from the IO thread manager first
 					var thread *IOThread
@@ -360,10 +367,13 @@ func (s *Server) startConnThread(ctx context.Context, thread *IOThread) {
 			logger.Error("Failed to unregister IO thread", err, map[string]any{"ClientID": clientID})
 		}
 
-		// Unregister both events with a single call if your eventLoop implementation supports it
-		// Otherwise, keep them separate but minimal
-		s.eventLoop.Unregister(fd, multiplexer.EVFILT_READ)
-		s.eventLoop.Unregister(fd, multiplexer.EVFILT_WRITE)
+		// Unregister both events with proper error handling
+		if err := s.eventLoop.Unregister(fd, multiplexer.EVFILT_READ); err != nil {
+			logger.Error("Failed to unregister READ event", err, map[string]any{"FD": fd})
+		}
+		if err := s.eventLoop.Unregister(fd, multiplexer.EVFILT_WRITE); err != nil {
+			logger.Error("Failed to unregister WRITE event", err, map[string]any{"FD": fd})
+		}
 
 		// Close the socket only once at the end
 		if err := unix.Close(fd); err != nil && !errors.Is(err, unix.EBADF) {

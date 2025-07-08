@@ -61,18 +61,41 @@ func (session *Session) Activate() (bool, error) {
 	session.CreatedAt = utils.GetCurrentTime().UTC()
 	session.LastAccessedAt = utils.GetCurrentTime().UTC()
 
+	SessionsStore.stLock.Lock()
 	SessionsStore.Store[session.SessionID] = session
+	SessionsStore.stLock.Unlock()
 	return true, nil
 }
 
+// expireInternal deletes session without locking (internal use)
+func expireInternal(sessionID string) {
+	delete(SessionsStore.Store, sessionID)
+}
+
 func (session *Session) Expire() {
-	delete(SessionsStore.Store, session.SessionID)
+	SessionsStore.stLock.Lock()
+	expireInternal(session.SessionID)
+	SessionsStore.stLock.Unlock()
 }
 
 func ExpireById(id string) {
-	if SessionsStore.Store[id] != nil {
-		SessionsStore.Store[id].Expire()
+	SessionsStore.stLock.Lock()
+	defer SessionsStore.stLock.Unlock()
+
+	if _, exists := SessionsStore.Store[id]; exists {
+		expireInternal(id)
 	}
+}
+
+// GetById safely retrieves a session by ID
+func GetById(id string) *Session {
+	SessionsStore.stLock.RLock()
+	defer SessionsStore.stLock.RUnlock()
+
+	if session, exists := SessionsStore.Store[id]; exists {
+		return session
+	}
+	return nil
 }
 
 // convert to string

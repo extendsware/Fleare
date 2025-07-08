@@ -28,6 +28,10 @@ type Kqueue struct {
 	events []unix.Kevent_t
 	// changes tracks the event changes to be applied to kqueue
 	// changes []unix.Kevent_t
+	// closed indicates if the kqueue has been closed
+	closed bool
+	// mu protects concurrent access to kqueue operations
+	// mu sync.RWMutex
 }
 
 func NewPoller(maxEvents int) (*Kqueue, error) {
@@ -43,6 +47,13 @@ func NewPoller(maxEvents int) (*Kqueue, error) {
 }
 
 func (k *Kqueue) Register(fd int, filter int16) error {
+	// k.mu.Lock()
+	// defer k.mu.Unlock()
+
+	if k.closed {
+		return fmt.Errorf("kqueue is closed")
+	}
+
 	event := []unix.Kevent_t{
 		{
 			Ident:  uint64(fd),
@@ -54,13 +65,23 @@ func (k *Kqueue) Register(fd int, filter int16) error {
 		},
 	}
 
-	unix.Kevent(k.kq, event, nil, nil)
+	_, err := unix.Kevent(k.kq, event, nil, nil)
+	if err != nil {
+		return fmt.Errorf("failed to register fd %d with filter %d: %v", fd, filter, err)
+	}
 
 	// k.changes = append(k.changes, event)
 	return nil
 }
 
 func (k *Kqueue) Unregister(fd int, filter int16) error {
+	// k.mu.Lock()
+	// defer k.mu.Unlock()
+
+	if k.closed {
+		return nil // No error if already closed
+	}
+
 	event := []unix.Kevent_t{
 		{Ident: uint64(fd),
 			Filter: filter,
@@ -71,11 +92,26 @@ func (k *Kqueue) Unregister(fd int, filter int16) error {
 		},
 	}
 	// k.changes = append(k.changes, event)
-	unix.Kevent(k.kq, event, nil, nil)
+	_, err := unix.Kevent(k.kq, event, nil, nil)
+	if err != nil {
+		// If the event doesn't exist (ENOENT) or the descriptor is bad (EBADF),
+		// it's not a fatal error during cleanup
+		if err == unix.ENOENT || err == unix.EBADF {
+			return nil
+		}
+		return fmt.Errorf("failed to unregister fd %d with filter %d: %v", fd, filter, err)
+	}
 	return nil
 }
 
 func (k *Kqueue) Poll(timeout time.Duration, callback func(fd int, filter int32, flags int32) error) error {
+	// k.mu.RLock()
+	// defer k.mu.RUnlock()
+
+	if k.closed {
+		return fmt.Errorf("kqueue is closed")
+	}
+
 	timeoutPtr := &unix.Timespec{
 		Sec:  int64(timeout / time.Second),
 		Nsec: int64(timeout % time.Second),
@@ -85,6 +121,7 @@ func (k *Kqueue) Poll(timeout time.Duration, callback func(fd int, filter int32,
 		if err == unix.EINTR {
 			return nil
 		}
+		return fmt.Errorf("kevent error: %v", err)
 	}
 	if numEvents == 0 {
 		return nil
@@ -102,5 +139,12 @@ func (k *Kqueue) Poll(timeout time.Duration, callback func(fd int, filter int32,
 }
 
 func (k *Kqueue) Close() error {
+	// k.mu.Lock()
+	// defer k.mu.Unlock()
+
+	if k.closed {
+		return nil
+	}
+	k.closed = true
 	return unix.Close(k.kq)
 }

@@ -122,7 +122,7 @@ func jsonRefSetFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 		return nil, err
 	}
 
-	cmd.SM.Wal().Put(key, &comm.Object{Value: value, Kind: uint32(store.JSON)})
+	cmd.SM.Wal().Put(key, &comm.Object{Value: objBytes, Kind: uint32(store.JSON)})
 
 	return &common.CmdResponse{
 		D: &comm.Response{

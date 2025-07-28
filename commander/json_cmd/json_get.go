@@ -94,13 +94,13 @@ func jsonGetFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 			return nil, fmt.Errorf("%s: %s", errors.InvalidCharacterError, err.Error())
 		}
 
+		if len(cmd.C.Args) > 2 {
+			refRead(M, cmd.C.Args[2:], cmd.SM)
+		}
+
 		d, _ := readNestedKey(M, path)
 		if d == nil {
 			return sentResponse([]byte(""), nil)
-		}
-
-		if len(cmd.C.Args) > 2 {
-			refRead(d.(map[string]interface{}), cmd.C.Args[2:], cmd.SM)
 		}
 
 		v := utils.ObjectToByte(d)

@@ -22,7 +22,7 @@ var listPopCmd = &common.Command{
 	localhost:9219> LIST.PUSH myKey '{"name":"John", "address": "kolkata"}' 10023.22
 	Ok
 	localhost:9219> LIST.POP myKey
-	Ok 
+	Ok 10023.22
 	localhost:9219> LIST.GET myKey
 	Ok [
 		"This is my first element"
@@ -64,32 +64,31 @@ func listPopFunc(cmd *common.Cmd) (*common.CmdResponse, error) {
 			return nil, fmt.Errorf("%s: the existing value for the provided key must be a list", errors.InvalidValueError)
 		}
 	} else {
-		return &common.CmdResponse{
-			D: &comm.Response{
-				Result: []byte(""),
-			},
-		}, nil
+		return sentResponse([]byte(""), nil)
 	}
+
 	length := len(arr)
+	if length == 0 {
+		return sentResponse([]byte(""), nil)
+	}
 	if length == 1 {
 		shard.M.Delete(key)
 		cmd.SM.Wal().Delete(key)
-		return &common.CmdResponse{
-			D: &comm.Response{
-				Result: []byte(""),
-			},
-		}, nil
+
+		return sentResponse(utils.ObjectToByte(arr[0]), nil)
 	}
+	last := arr[length-1]
+	arr = arr[:length-1]
+	if last == nil {
+		return sentResponse([]byte(""), nil)
+	}
+
 	objBytes := utils.ObjectToByte(arr[:length-1])
 	if err = shard.M.Set(key, objBytes, store.List); err != nil {
 		return nil, err
 	}
-	obj.Value = objBytes
+
 	cmd.SM.Wal().Put(key, &comm.Object{Value: objBytes, Kind: uint32(store.List)})
 
-	return &common.CmdResponse{
-		D: &comm.Response{
-			Result: []byte(""),
-		},
-	}, nil
+	return sentResponse(utils.ObjectToByte(last), nil)
 }

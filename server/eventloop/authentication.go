@@ -54,7 +54,7 @@ func (s *Server) AuthenticateClient(clientFD int, clientID string) (bool, error)
 
 	length := binary.BigEndian.Uint32(lenBuf[:])
 	if length == 0 || length > MaxRequestBodySize {
-		return false, fmt.Errorf("invalid authentication message")
+		return false, fmt.Errorf("invalid authentication data provided")
 	}
 
 	// Step 2: Allocate buffer for full protobuf message

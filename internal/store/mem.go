@@ -2,6 +2,7 @@ package store
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/parashmaity/fleare/internal/comm"
@@ -9,27 +10,27 @@ import (
 
 type Memory struct {
 	Mem map[string]*comm.Object
-	// mu  sync.RWMutex
+	mu  sync.RWMutex
 }
 
 func NewMemory() *Memory {
 	return &Memory{
 		Mem: make(map[string]*comm.Object),
-		// mu:  sync.RWMutex{},
+		mu:  sync.RWMutex{},
 	}
 }
 
 func (m *Memory) Length() int32 {
-	// m.mu.RLock()
-	// defer m.mu.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return int32(len(m.Mem))
 }
 
 func (m *Memory) Get(key string) (*comm.Object, error) {
-	// m.mu.RLock()
-	// defer m.mu.RUnlock()
 
+	m.mu.RLock()
 	obj, ok := m.Mem[key]
+	m.mu.RUnlock()
 	if !ok {
 		return nil, nil
 	}
@@ -45,18 +46,17 @@ func (m *Memory) Get(key string) (*comm.Object, error) {
 }
 
 func (m *Memory) Set(key string, value []byte, kind Kind) error {
-	// m.mu.Lock()
-	// defer m.mu.Unlock()
 
 	obj := &comm.Object{Value: value, Kind: uint32(kind)}
-	// fmt.Println("mem", obj, string(value))
+	m.mu.Lock()
 	m.Mem[key] = obj
+	m.mu.Unlock()
 	return nil
 }
 
 func (m *Memory) SetWithTTL(key string, value []byte, kind Kind, ttlSeconds int64) error {
-	// m.mu.Lock()
-	// defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	var expirationTime int64 = 0
 	if ttlSeconds > 0 {
@@ -73,8 +73,8 @@ func (m *Memory) SetWithTTL(key string, value []byte, kind Kind, ttlSeconds int6
 }
 
 func (m *Memory) Delete(key string) (bool, error) {
-	// m.mu.Lock()
-	// defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	if m.Mem[key] != nil {
 		delete(m.Mem, key)
@@ -84,8 +84,8 @@ func (m *Memory) Delete(key string) (bool, error) {
 }
 
 func (m *Memory) TTL(key string) (int64, error) {
-	// m.mu.RLock()
-	// defer m.mu.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
 	obj, ok := m.Mem[key]
 	if !ok {
@@ -107,8 +107,8 @@ func (m *Memory) TTL(key string) (int64, error) {
 }
 
 func (m *Memory) Expire(key string, ttlSeconds int64) (bool, error) {
-	// m.mu.Lock()
-	// defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	obj, ok := m.Mem[key]
 	if !ok {
@@ -132,8 +132,8 @@ func (m *Memory) Expire(key string, ttlSeconds int64) (bool, error) {
 }
 
 func (m *Memory) CleanupExpired() int32 {
-	// m.mu.Lock()
-	// defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	currentTime := time.Now().Unix()
 	var deletedCount int32 = 0

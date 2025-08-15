@@ -2,11 +2,15 @@ package wal
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
-	"hash/fnv"
+	"hash/crc32"
 	"io"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -18,291 +22,428 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// ---------------------------------------------
+// Config & constants
+// ---------------------------------------------
+
 const (
-	MaxBufferSize int32  = 10 * 1024 * 1024
-	FileName      string = "data-file"
-	FileExt       string = "db"
+	defaultBufSize       = 4 << 20 // 4 MiB bufio buffer
+	defaultBatchBytes    = 1 << 20 // 1 MiB group-commit target
+	defaultFlushInterval = 5 * time.Millisecond
 )
 
-type WALShard struct {
-	mu          sync.Mutex
-	id          string
-	file        *os.File
-	writer      *bufio.Writer
-	batch       [][]byte
-	batchSize   int
-	flushTicker *time.Ticker
-	done        chan struct{}
-	writeChan   chan *comm.WALEntry
+// SyncPolicy controls how often fsync/fdatasync is called
+// High throughput needs group commit; durability latency is a tradeoff.
+
+type SyncPolicy int
+
+const (
+	SyncNever       SyncPolicy = iota // rely on OS flush (fastest, least durable)
+	SyncEveryBatch                    // fdatasync once per batch
+	SyncEveryNBatch                   // fdatasync every N batches (see SyncEveryN)
+)
+
+// Options for the WAL system
+
+type Options struct {
+	ShardCount     int
+	WALPath        string
+	BufSize        int           // bufio writer size per shard
+	BatchBytes     int           // target bytes per batch before flush
+	FlushInterval  time.Duration // max time to wait before flushing even if BatchBytes not reached
+	WriteChanSize  int           // per-shard channel capacity
+	SyncPolicy     SyncPolicy
+	SyncEveryN     int   // used when SyncPolicy==SyncEveryNBatch
+	SegmentMaxSize int64 // rotate when segment size exceeded (optional; 0=disabled)
 }
 
+func (o *Options) withDefaults() *Options {
+	n := *o
+	if n.BufSize <= 0 {
+		n.BufSize = defaultBufSize
+	}
+	if n.BatchBytes <= 0 {
+		n.BatchBytes = defaultBatchBytes
+	}
+	if n.FlushInterval <= 0 {
+		n.FlushInterval = defaultFlushInterval
+	}
+	if n.WriteChanSize <= 0 {
+		n.WriteChanSize = 65536
+	}
+	if n.ShardCount <= 0 {
+		n.ShardCount = max(2, runtime.GOMAXPROCS(0))
+	}
+	if n.SyncEveryN <= 0 {
+		n.SyncEveryN = 10
+	}
+	if n.WALPath == "" {
+		n.WALPath = "."
+	}
+	return &n
+}
+
+// ---------------------------------------------
+// WAL implementation
+// ---------------------------------------------
+
 type WALSystem struct {
-	shards     map[string]*WALShard
+	shards     map[string]*walShard
 	chash      *helper.ConsistentHash
 	writeCount uint64
 	entryPool  sync.Pool
+	closed     atomic.Bool
 }
 
-// NewWALSystem creates a new WAL system
-func NewWALSystem(shardCount, batchSize int, walPath string) (*WALSystem, error) {
-	err := os.MkdirAll(walPath, 0755) // Changed permissions to 0755
-	if err != nil {
-		return nil, fmt.Errorf("failed to create WAL directory: %w", err)
+func NewWALSystem(opts Options) (*WALSystem, error) {
+	o := opts.withDefaults()
+	if err := os.MkdirAll(o.WALPath, 0o755); err != nil {
+		return nil, fmt.Errorf("create WAL dir: %w", err)
 	}
 
 	ws := &WALSystem{
-		shards: make(map[string]*WALShard),
-		entryPool: sync.Pool{
-			New: func() interface{} { return new(comm.WALEntry) },
-		},
-		chash: helper.NewConsistentHash(),
+		shards:    make(map[string]*walShard, o.ShardCount),
+		chash:     helper.NewConsistentHash(),
+		entryPool: sync.Pool{New: func() any { return new(comm.WALEntry) }},
 	}
 
-	for i := range shardCount { // Fixed loop range syntax
+	for i := 0; i < o.ShardCount; i++ {
 		id := strconv.Itoa(i)
-		shardPath := fmt.Sprintf("%s/%s-%s.%s", walPath, FileName, id, FileExt)
-		shard, err := newWALShard(id, batchSize, shardPath)
+		segPath := filepath.Join(o.WALPath, fmt.Sprintf("data-file-%s.db", id))
+		sh, err := newWalShard(id, segPath, o)
 		if err != nil {
 			return nil, err
 		}
-		ws.shards[id] = shard
+		ws.shards[id] = sh
 		ws.chash.AddNode(id)
 	}
 	return ws, nil
 }
 
 func (ws *WALSystem) Close() error {
-	var firstErr error
-	for _, shard := range ws.shards {
-		if shard != nil {
-			if err := shard.Close(); err != nil && firstErr == nil {
-				firstErr = err
-			}
+	if ws.closed.Swap(true) {
+		return nil
+	}
+	var first error
+	for _, s := range ws.shards {
+		if s == nil {
+			continue
+		}
+		if err := s.Close(); err != nil && first == nil {
+			first = err
 		}
 	}
-
-	return firstErr
+	return first
 }
 
-func (shard *WALShard) Close() error {
-	close(shard.done)
-	shard.flushTicker.Stop()
-
-	// Ensure all pending writes are flushed
-	shard.mu.Lock()
-	defer shard.mu.Unlock()
-
-	shard.flushBatch()
-	if err := shard.writer.Flush(); err != nil {
-		return err
-	}
-	if err := shard.file.Sync(); err != nil {
-		return err
-	}
-	return shard.file.Close()
-}
-
-func newWALShard(shardId string, batchSize int, path string) (*WALShard, error) {
-	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
-	if err != nil {
-		return nil, err
-	}
-
-	writer := bufio.NewWriterSize(file, int(MaxBufferSize))
-	shard := &WALShard{
-		file:        file,
-		id:          shardId,
-		writer:      writer,
-		batchSize:   batchSize,
-		batch:       make([][]byte, 0, batchSize*2), // Pre-allocate batch capacity
-		flushTicker: time.NewTicker(30 * time.Second),
-		done:        make(chan struct{}),
-		writeChan:   make(chan *comm.WALEntry, 10000),
-	}
-
-	go shard.processWrites()
-	return shard, nil
-}
-
-func (ws *WALSystem) GetShard(name string) Shard {
-	return ws.shards[name]
-}
+func (ws *WALSystem) GetShard(name string) Shard { return ws.shards[name] }
 
 func (ws *WALSystem) GetShardByKey(key string) Shard {
 	node := ws.chash.GetNode(key)
 	return ws.shards[node]
 }
 
-// Put stores or updates an object
 func (ws *WALSystem) Put(key string, obj *comm.Object) error {
+	if ws.closed.Load() {
+		return errors.New("wal: closed")
+	}
 	atomic.AddUint64(&ws.writeCount, 1)
-
 	entry := ws.entryPool.Get().(*comm.WALEntry)
 	entry.Op = comm.WALEntry_UPDATE
 	entry.Key = key
 	entry.Object = obj
-	entry.Checksum = calculateChecksum(obj)
-
-	// Async write to WAL
-	shard := ws.GetShardByKey(key).(*WALShard)
-	shard.writeChan <- entry
-
-	return nil
+	// Checksum is calculated on encoded bytes inside shard goroutine (zero-alloc path)
+	return ws.enqueue(key, entry)
 }
 
-// Delete removes an object
 func (ws *WALSystem) Delete(key string) error {
+	if ws.closed.Load() {
+		return errors.New("wal: closed")
+	}
 	atomic.AddUint64(&ws.writeCount, 1)
-
 	entry := ws.entryPool.Get().(*comm.WALEntry)
 	entry.Op = comm.WALEntry_DELETE
 	entry.Key = key
 	entry.Object = nil
-	entry.Checksum = 0
-
-	shard := ws.GetShardByKey(key).(*WALShard)
-	shard.writeChan <- entry
-
-	return nil
+	return ws.enqueue(key, entry)
 }
 
-func (shard *WALShard) processWrites() {
-	for {
+func (ws *WALSystem) enqueue(key string, e *comm.WALEntry) error {
+	sh := ws.GetShardByKey(key).(*walShard)
+	select {
+	case sh.ch <- e:
+		return nil
+	default:
+		// backpressure: block with timeout proportional to FlushInterval
 		select {
-		case entry := <-shard.writeChan:
-			shard.mu.Lock()
-			data, err := proto.Marshal(entry)
-			if err != nil {
-				logger.Error("Protobuf marshal error", err, map[string]any{"entry": entry})
-				shard.mu.Unlock()
-				continue
-			}
-
-			// Write length prefix
-			lengthBuf := make([]byte, 4)
-			binary.BigEndian.PutUint32(lengthBuf, uint32(len(data)))
-			shard.batch = append(shard.batch, lengthBuf)
-
-			// Write actual data
-			shard.batch = append(shard.batch, data)
-
-			if len(shard.batch)/2 >= shard.batchSize { // Each entry is 2 slices (length + data)
-				shard.flushBatch()
-			}
-			shard.mu.Unlock()
-
-		case <-shard.flushTicker.C:
-			shard.mu.Lock()
-			if len(shard.batch) > 0 {
-				shard.flushBatch()
-			}
-			shard.mu.Unlock()
-
-		case <-shard.done:
-			shard.mu.Lock()
-			shard.flushBatch()
-			shard.writer.Flush()
-			shard.file.Sync()
-			shard.mu.Unlock()
-			return
+		case sh.ch <- e:
+			return nil
+		case <-time.After(sh.opts.FlushInterval * 4):
+			return errors.New("wal shard channel full: backpressure")
 		}
 	}
 }
 
-func (shard *WALShard) flushBatch() {
-	if len(shard.batch) == 0 {
+func (ws *WALSystem) Stats() uint64 { return atomic.LoadUint64(&ws.writeCount) }
+
+// ---------------------------------------------
+// Shard
+// ---------------------------------------------
+
+type walShard struct {
+	id     string
+	file   *os.File
+	bufw   *bufio.Writer
+	ch     chan *comm.WALEntry
+	opts   *Options
+	closed atomic.Bool
+
+	// batching
+	batchBuf        bytes.Buffer
+	batchBytes      int
+	batchCount      int
+	syncEveryTicker *time.Ticker
+	flushTimer      *time.Timer
+
+	// pools to reduce allocations
+	encBufPool sync.Pool // []byte buffers for MarshalAppend path
+
+	wg sync.WaitGroup
+}
+
+func newWalShard(id, path string, o *Options) (*walShard, error) {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		return nil, err
+	}
+	sh := &walShard{
+		id:         id,
+		file:       f,
+		bufw:       bufio.NewWriterSize(f, o.BufSize),
+		ch:         make(chan *comm.WALEntry, o.WriteChanSize),
+		opts:       o,
+		encBufPool: sync.Pool{New: func() any { b := make([]byte, 0, 4<<10); return &b }},
+	}
+
+	sh.flushTimer = time.NewTimer(o.FlushInterval)
+	if !sh.flushTimer.Stop() {
+		<-sh.flushTimer.C
+	}
+
+	sh.wg.Add(1)
+	go sh.run()
+	return sh, nil
+}
+
+func (s *walShard) Close() error {
+	if s.closed.Swap(true) {
+		return nil
+	}
+	close(s.ch)
+	s.wg.Wait()
+	if err := s.bufw.Flush(); err != nil {
+		return err
+	}
+	if s.opts.SyncPolicy != SyncNever {
+		if err := s.file.Sync(); err != nil {
+			return err
+		}
+	}
+	return s.file.Close()
+}
+
+// Record encoding layout: [u32 length][u32 crc32c][protobuf bytes]
+// This makes recovery simple and checksum robust.
+
+var crcTab = crc32.MakeTable(crc32.Castagnoli)
+
+func (s *walShard) run() {
+	defer s.wg.Done()
+	batchDeadline := time.Now().Add(s.opts.FlushInterval)
+
+	for {
+		var e *comm.WALEntry
+		var ok bool
+
+		// fast path: drain as much as possible up to BatchBytes or deadline
+		select {
+		case e, ok = <-s.ch:
+			if !ok {
+				s.flush(true)
+				return
+			}
+			s.encodeAppend(e)
+			// recycle entry back to pool
+			*e = comm.WALEntry{}
+			// can't access ws.entryPool here; keep minimal: GC will handle or inject external pool via callback if needed
+			// NOTE: caller owns a pool; if needed, make WALSystem expose a PutEntry method
+		case <-time.After(time.Until(batchDeadline)):
+			// timeout triggers flush
+		}
+
+		// inner drain loop to coalesce many entries cheaply
+		for s.batchBytes < s.opts.BatchBytes {
+			select {
+			case e, ok = <-s.ch:
+				if !ok {
+					s.flush(true)
+					return
+				}
+				s.encodeAppend(e)
+				*e = comm.WALEntry{}
+			default:
+				goto FLUSH_CHECK
+			}
+		}
+
+	FLUSH_CHECK:
+		if s.batchBytes >= s.opts.BatchBytes || time.Now().After(batchDeadline) {
+			s.flush(false)
+			batchDeadline = time.Now().Add(s.opts.FlushInterval)
+		}
+	}
+}
+
+func (s *walShard) encodeAppend(e *comm.WALEntry) {
+	// marshal protobuf into pooled []byte via MarshalAppend to reduce allocs
+	bufPtr := s.encBufPool.Get().(*[]byte)
+	b := (*bufPtr)[:0]
+	// MarshalOptions with AllowPartial speeds slightly; use standard for safety here
+	var mo proto.MarshalOptions
+	var data []byte
+	var err error
+	data, err = mo.MarshalAppend(b, e)
+	if err != nil {
+		logger.Error("wal: marshal", err, map[string]any{"key": e.Key})
+		s.encBufPool.Put(bufPtr)
 		return
 	}
 
-	for _, data := range shard.batch {
-		if _, err := shard.writer.Write(data); err != nil {
-			logger.Error("WAL write error", err, nil)
+	crc := crc32.Checksum(data, crcTab)
+	// record = len(4) + crc(4) + data
+	recLen := 4 + len(data)
+	// header length = u32(recLen)
+	var header [8]byte
+	binary.BigEndian.PutUint32(header[0:4], uint32(recLen))
+	binary.BigEndian.PutUint32(header[4:8], crc)
+
+	s.batchBuf.Write(header[:])
+	s.batchBuf.Write(data)
+	s.batchBytes += 8 + len(data)
+	s.batchCount++
+
+	// reuse the buffer for next time
+	*bufPtr = data[:0]
+	s.encBufPool.Put(bufPtr)
+}
+
+func (s *walShard) flush(forceSync bool) {
+	if s.batchBytes == 0 {
+		return
+	}
+	if _, err := s.bufw.Write(s.batchBuf.Bytes()); err != nil {
+		logger.Error("wal: write batch", err, nil)
+	}
+	if err := s.bufw.Flush(); err != nil {
+		logger.Error("wal: flush", err, nil)
+	}
+
+	needSync := false
+	switch s.opts.SyncPolicy {
+	case SyncEveryBatch:
+		needSync = true
+	case SyncEveryNBatch:
+		needSync = (s.batchCount % s.opts.SyncEveryN) == 0
+	}
+	if forceSync {
+		needSync = true
+	}
+	if needSync {
+		if err := s.file.Sync(); err != nil {
+			logger.Error("wal: sync", err, nil)
 		}
 	}
 
-	if err := shard.writer.Flush(); err != nil {
-		logger.Error("WAL flush error", err, nil)
-	}
-
-	// Sync to disk to ensure data is written
-	if err := shard.file.Sync(); err != nil {
-		logger.Error("WAL sync error", err, nil)
-	}
-
-	shard.batch = shard.batch[:0] // Clear batch
+	// reset
+	s.batchBuf.Reset()
+	s.batchBytes = 0
 }
 
-func calculateChecksum(obj *comm.Object) uint32 {
-	if obj == nil {
-		return 0
-	}
-	h := fnv.New32a()
-	h.Write(fmt.Appendf(nil, "%d", obj.Kind))
-	h.Write(obj.Value)
-	h.Write(fmt.Appendf(nil, "%d", obj.Timestamp))
-	return h.Sum32()
-}
+// ---------------------------------------------
+// Recovery (tolerant to torn tail)
+// ---------------------------------------------
 
-// Stats returns current WAL statistics
-func (ws *WALSystem) Stats() uint64 {
-	return atomic.LoadUint64(&ws.writeCount)
-}
-
-// Recover rebuilds the in-memory map from WAL files
 func (ws *WALSystem) Recover(walPath string, callback func(key string, obj *comm.Object, isDeleted bool)) error {
-	for i := range len(ws.shards) {
-		id := strconv.Itoa(i)
-		shardPath := fmt.Sprintf("%s/%s-%s.%s", walPath, FileName, id, FileExt)
-		if err := ws.recoverShard(shardPath, callback); err != nil {
+	// iterate shards by count known in this instance. If unknown, scan directory by prefix.
+	for id := range ws.shards {
+		p := filepath.Join(walPath, fmt.Sprintf("data-file-%s.db", id))
+		if err := recoverShard(p, callback); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (ws *WALSystem) recoverShard(path string, callback func(key string, obj *comm.Object, isDeleted bool)) error {
-	file, err := os.Open(path)
+func recoverShard(path string, cb func(key string, obj *comm.Object, isDeleted bool)) error {
+	f, err := os.Open(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil // New WAL, nothing to recover
+			return nil
 		}
 		return err
 	}
-	defer file.Close()
+	defer f.Close()
 
-	reader := bufio.NewReader(file)
+	r := bufio.NewReaderSize(f, defaultBufSize)
 	for {
-		// Read length prefix
-		lengthBuf := make([]byte, 4)
-		if _, err := io.ReadFull(reader, lengthBuf); err != nil {
-			if err == io.EOF {
+		var hdr [8]byte
+		if _, err := io.ReadFull(r, hdr[:]); err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			if errors.Is(err, io.ErrUnexpectedEOF) {
+				break
+			} // tolerate torn tail
+			return err
+		}
+		recLen := binary.BigEndian.Uint32(hdr[0:4])
+		expectedCRC := binary.BigEndian.Uint32(hdr[4:8])
+		if recLen < 4 {
+			return fmt.Errorf("wal: bad recLen %d", recLen)
+		}
+
+		data := make([]byte, recLen-4) // recLen includes crc(4)+data
+		if _, err := io.ReadFull(r, data); err != nil {
+			if errors.Is(err, io.ErrUnexpectedEOF) {
 				break
 			}
 			return err
 		}
+		if crc32.Checksum(data, crcTab) != expectedCRC {
+			return fmt.Errorf("wal: checksum mismatch")
+		}
 
-		length := binary.BigEndian.Uint32(lengthBuf)
-		data := make([]byte, length)
-		if _, err := io.ReadFull(reader, data); err != nil {
+		var e comm.WALEntry
+		if err := proto.Unmarshal(data, &e); err != nil {
 			return err
 		}
-
-		var entry comm.WALEntry
-		if err := proto.Unmarshal(data, &entry); err != nil {
-			return err
-		}
-
-		// Verify checksum for data integrity
-		if entry.Op == comm.WALEntry_UPDATE && entry.Checksum != calculateChecksum(entry.Object) {
-			return fmt.Errorf("checksum mismatch for key %s", entry.Key)
-		}
-
-		switch entry.Op {
+		switch e.Op {
 		case comm.WALEntry_UPDATE:
-			callback(entry.Key, entry.Object, false)
+			cb(e.Key, e.Object, false)
 		case comm.WALEntry_DELETE:
-			callback(entry.Key, entry.Object, true)
+			cb(e.Key, nil, true)
 		}
 	}
 	return nil
+}
+
+// ---------------------------------------------
+// Helpers
+// ---------------------------------------------
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

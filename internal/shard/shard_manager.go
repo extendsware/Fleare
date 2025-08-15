@@ -24,7 +24,16 @@ type ShardManager struct {
 func NewShardManager(numShards int) *ShardManager {
 
 	ch := helper.NewConsistentHash()
-	w, err := wal.NewWALSystem(numShards, config.GetConfig().Persistence.AfterWriteCount, config.GetConfig().Persistence.Path)
+
+	w, err := wal.NewWALSystem(wal.Options{
+		// ShardCount:    runtime.GOMAXPROCS(0),
+		ShardCount:    numShards,
+		WALPath:       config.GetConfig().Persistence.Path,
+		BatchBytes:    1 << 20,              // 1 MiB
+		FlushInterval: 5 * time.Millisecond, // group window
+		SyncPolicy:    wal.SyncEveryNBatch,
+		SyncEveryN:    config.GetConfig().Persistence.AfterWriteCount,
+	})
 	if err != nil {
 		logger.Error("Failed to start persistence service", err, nil)
 	}

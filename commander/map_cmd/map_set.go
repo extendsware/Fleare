@@ -91,10 +91,9 @@ func mapSetKey(cmd *common.Cmd) (*common.CmdResponse, error) {
 		if err := json.Unmarshal(obj.Value, &M); err != nil {
 			return nil, fmt.Errorf("%s: %s", errors.InvalidCharacterError, err.Error())
 		}
-	}
-
-	if store.Map != store.Kind(obj.Kind) {
-		return nil, fmt.Errorf("%s: The current value associated with the provided key must be a Map type", errors.InvalidValueError)
+		if store.Map != store.Kind(obj.Kind) {
+			return nil, fmt.Errorf("%s: The current value associated with the provided key must be a Map type", errors.InvalidValueError)
+		}
 	}
 
 	M[mk] = utils.EnsureUnmarshal(value)

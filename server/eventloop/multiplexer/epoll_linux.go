@@ -59,10 +59,11 @@ func (e *Epoll) Register(fd int, filter int16) error {
 
 func (e *Epoll) Unregister(fd int, filter int16) error {
 	err := unix.EpollCtl(e.fd, unix.EPOLL_CTL_DEL, fd, nil)
-	if err != nil {
-		return err
+	if err == unix.EBADF {
+		// FD was already closed or invalid, no need to return an error
+		return nil
 	}
-	return nil
+	return err
 }
 
 func (e *Epoll) Poll(timeout time.Duration, callback func(fd int, filter int32, flags int32) error) error {

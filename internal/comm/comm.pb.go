@@ -76,7 +76,7 @@ func (x *Command) GetArgs() []string {
 type Response struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ClientId      string                 `protobuf:"bytes,1,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
-	ReqId         string                 `protobuf:"bytes,2,opt,name=req_id,json=reqId,proto3" json:"req_id,omitempty"`
+	Topic         string                 `protobuf:"bytes,2,opt,name=topic,proto3" json:"topic,omitempty"`
 	Status        string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
 	Result        []byte                 `protobuf:"bytes,4,opt,name=result,proto3" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -120,9 +120,9 @@ func (x *Response) GetClientId() string {
 	return ""
 }
 
-func (x *Response) GetReqId() string {
+func (x *Response) GetTopic() string {
 	if x != nil {
-		return x.ReqId
+		return x.Topic
 	}
 	return ""
 }
@@ -148,10 +148,10 @@ const file_internal_comm_comm_proto_rawDesc = "" +
 	"\x18internal/comm/comm.proto\x12\x04comm\"7\n" +
 	"\aCommand\x12\x18\n" +
 	"\acommand\x18\x01 \x01(\tR\acommand\x12\x12\n" +
-	"\x04args\x18\x02 \x03(\tR\x04args\"n\n" +
+	"\x04args\x18\x02 \x03(\tR\x04args\"m\n" +
 	"\bResponse\x12\x1b\n" +
-	"\tclient_id\x18\x01 \x01(\tR\bclientId\x12\x15\n" +
-	"\x06req_id\x18\x02 \x01(\tR\x05reqId\x12\x16\n" +
+	"\tclient_id\x18\x01 \x01(\tR\bclientId\x12\x14\n" +
+	"\x05topic\x18\x02 \x01(\tR\x05topic\x12\x16\n" +
 	"\x06status\x18\x03 \x01(\tR\x06status\x12\x16\n" +
 	"\x06result\x18\x04 \x01(\fR\x06resultB\x0fZ\rinternal/commb\x06proto3"
 

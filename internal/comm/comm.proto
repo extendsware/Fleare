@@ -10,7 +10,7 @@ message Command {
 
 message Response {
   string        client_id = 1;
-  string        req_id = 2;
+  string        topic  = 2;
   string        status = 3;
   bytes         result = 4;
 }

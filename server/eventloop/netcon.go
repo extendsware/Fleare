@@ -24,9 +24,10 @@ const (
 
 // Conn handles I/O operations for a network connection
 type Conn struct {
-	fd   int
-	file *os.File
-	conn net.Conn
+	fd     int
+	file   *os.File
+	conn   net.Conn
+	reader *bufio.Reader
 }
 
 // NewConn creates a new IOHandler from a file descriptor
@@ -63,19 +64,20 @@ func NewConn(clientFD int) (*Conn, error) {
 	}
 
 	return &Conn{
-		fd:   clientFD,
-		file: file,
-		conn: conn,
+		fd:     clientFD,
+		file:   file,
+		conn:   conn,
+		reader: bufio.NewReaderSize(conn, IoBufferSize),
 	}, nil
 }
 
 // ReadRequest reads data from the network connection
 func (c *Conn) ReadSync() ([]byte, error) {
-	reader := bufio.NewReaderSize(c.conn, IoBufferSize)
+	// reader := bufio.NewReaderSize(c.conn, IoBufferSize)
 
 	// Step 1: Read 4 bytes for length prefix
 	var lenBuf [4]byte
-	if _, err := io.ReadFull(reader, lenBuf[:]); err != nil {
+	if _, err := io.ReadFull(c.reader, lenBuf[:]); err != nil {
 		return nil, err
 	}
 	length := binary.BigEndian.Uint32(lenBuf[:])
@@ -89,7 +91,7 @@ func (c *Conn) ReadSync() ([]byte, error) {
 	msgBuf := make([]byte, length)
 
 	// Step 3: Read the full message
-	if _, err := io.ReadFull(reader, msgBuf); err != nil {
+	if _, err := io.ReadFull(c.reader, msgBuf); err != nil {
 		return nil, err
 	}
 

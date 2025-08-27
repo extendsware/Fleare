@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/parashmaity/fleare/commander/common"
 	"github.com/parashmaity/fleare/config"
@@ -12,6 +13,7 @@ import (
 	"github.com/parashmaity/fleare/internal/logger"
 	"github.com/parashmaity/fleare/internal/shard"
 	"github.com/parashmaity/fleare/internal/utils"
+	"github.com/parashmaity/fleare/pubsub"
 	"github.com/parashmaity/fleare/server/eventloop"
 
 	"os"
@@ -28,6 +30,7 @@ type EventManager struct {
 	EnableAuth   bool
 	Config       *config.Configuration
 	ShardManager *shard.ShardManager
+	PubSubBroker *pubsub.Broker
 }
 
 func Start() {
@@ -57,6 +60,7 @@ func Start() {
 	s := &EventManager{
 		Config:       config,
 		ShardManager: shard.NewShardManager(config.Shard.ShardCount),
+		PubSubBroker: pubsub.NewBroker(),
 	}
 
 	if config.Persistence.Enable {
@@ -129,6 +133,7 @@ func (m *EventManager) OnDisconnect(clientID string) {
 		"clientID:": clientID,
 	})
 	auth.ExpireById(clientID)
+	m.PubSubBroker.HandleClientDisconnect(clientID)
 }
 
 func (m *EventManager) OnTraffic(conn eventloop.Conn, clientID string, data []byte) {
@@ -151,6 +156,13 @@ func (m *EventManager) OnTraffic(conn eventloop.Conn, clientID string, data []by
 			"status":       config.STATUS_ERROR,
 			"duration":     time.Since(start).String(),
 		})
+		return
+	}
+
+	// Check if the command is a pubsub command
+	stringCommand := strings.ToLower(c.Command)
+	if stringCommand == "subscribe" || stringCommand == "unsubscribe" || stringCommand == "publish" {
+		m.PubSubBroker.HandlePubSub(&conn, clientID, c)
 		return
 	}
 
